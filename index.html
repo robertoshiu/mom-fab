@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAB MOM</title>
+
+  <!-- Import map: D3 v7 from esm.sh as a single "d3" barrel (C1). Local
+       modules resolve relative via "./". No bundler — native ESM only. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "d3": "https://esm.sh/d3@7.8.5",
+      "d3/": "https://esm.sh/d3@7.8.5/"
+    }
+  }
+  </script>
+
+  <!-- CSS load order: tokens (variables) → theme (components consume them).
+       components.css / modules.css arrive in Wave 3 — only link what exists. -->
+  <link rel="stylesheet" href="styles/tokens.css" />
+  <link rel="stylesheet" href="styles/theme.css" />
+
+  <style>
+    /* ---- shell layout (instrument frame) ---- */
+    #app {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+    #nav-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--sp-2);
+      padding-top: var(--sp-2);
+      background: var(--bg-inset);
+      border-right: 1px solid var(--hairline);
+    }
+    #brand-mark {
+      width: var(--sp-7);
+      height: var(--sp-7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      border-bottom: 1px solid var(--hairline);
+      flex: 0 0 auto;
+    }
+    #brand-mark svg { width: 24px; height: 24px; }
+
+    #main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+    #topbar {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-4);
+      padding: var(--sp-2) var(--sp-4);
+      border-bottom: 1px solid var(--hairline);
+      background: var(--bg-elevated);
+      flex: 0 0 auto;
+    }
+    #product-name {
+      font-weight: var(--fw-emphasis);
+      font-size: var(--fs-subtitle);
+      letter-spacing: var(--label-tracking);
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+    /* read the --brand-name token as the product name text */
+    #product-name::after { content: var(--brand-name); }
+
+    #kpi-strip {
+      display: flex;
+      gap: var(--sp-2);
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    #event-river {
+      display: flex;
+      gap: var(--sp-2);
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+    #content {
+      flex: 1 1 auto;
+      position: relative;
+      overflow: auto;
+      padding: var(--sp-5);
+    }
+
+    /* ---- nav empty-state placeholder (Interaction State Matrix) ---- */
+    #shell-empty {
+      max-width: 520px;
+      margin: var(--sp-7) auto 0;
+      padding: var(--sp-6);
+      text-align: center;
+    }
+    #shell-empty .label { display: block; margin-bottom: var(--sp-3); }
+    #shell-empty .shell-empty-msg {
+      color: var(--text-secondary);
+      font-size: var(--fs-subtitle);
+      line-height: 1.6;
+    }
+    #shell-empty .shell-empty-skeleton {
+      display: flex;
+      gap: var(--sp-2);
+      justify-content: center;
+      margin-top: var(--sp-5);
+    }
+    #shell-empty .shell-empty-skeleton span {
+      width: var(--sp-7);
+      height: var(--sp-1);
+      background: var(--hairline);
+      border-radius: var(--r-card);
+    }
+
+    /* ---- boot spinner (POST-style; hairline-first) ---- */
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-4);
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+    }
+    #boot.hidden { display: none; }
+    #boot-spinner {
+      width: var(--sp-6);
+      height: var(--sp-6);
+      border: 1px solid var(--hairline);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: boot-spin var(--tick) linear infinite;
+    }
+    #boot-label {
+      font-size: var(--fs-caption);
+      font-weight: var(--fw-emphasis);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+    }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+
+    /* ---- boot error banner (D14; inline boot-vocabulary version) ---- */
+    #boot-error {
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-4);
+      padding: var(--sp-6);
+      background: var(--bg-primary);
+      text-align: center;
+    }
+    #boot-error.show { display: flex; }
+    #boot-error .boot-error-frame {
+      max-width: 560px;
+      padding: var(--sp-5);
+      border: 1px solid var(--danger);
+      border-radius: var(--r-card);
+      background: var(--bg-elevated);
+    }
+    #boot-error .label { display: block; color: var(--danger); margin-bottom: var(--sp-3); }
+    #boot-error-message {
+      font-family: var(--font-mono);
+      font-size: var(--fs-body);
+      color: var(--text-secondary);
+      word-break: break-word;
+      margin-bottom: var(--sp-4);
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside id="nav-left">
+      <div id="brand-mark" aria-hidden="true">
+        <!-- 48px logo slot: assets/brand-mark.svg, currentColor 24px -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="FAB MOM">
+          <rect x="3" y="3" width="18" height="18"/>
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
+        </svg>
+      </div>
+      <!-- 9 nav buttons injected by shell/nav.js (T10) -->
+    </aside>
+
+    <main id="main">
+      <header id="topbar">
+        <span id="product-name"></span>
+        <div id="kpi-strip"></div>
+        <div id="event-river" role="log" aria-live="off"></div>
+      </header>
+      <section id="content">
+        <!-- nav empty-state placeholder until modules land (Wave 3) -->
+        <div id="shell-empty" class="panel">
+          <span class="label" data-i18n="states.empty"></span>
+          <div class="shell-empty-msg" data-i18n="states.event.empty"></div>
+          <div class="shell-empty-skeleton" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- POST-style boot overlay: visible until the module graph is ready. -->
+  <div id="boot">
+    <div id="boot-spinner" aria-hidden="true"></div>
+    <div id="boot-label" data-i18n="states.loading">Loading…</div>
+  </div>
+
+  <!-- D14 boot error banner markup (hidden until triggered). -->
+  <div id="boot-error" role="alert">
+    <div class="boot-error-frame panel">
+      <span class="label" data-i18n="states.error">Failed to load</span>
+      <div id="boot-error-message"></div>
+      <button id="boot-error-reload" class="btn btn-primary" data-i18n="common.reload">Reload</button>
+    </div>
+  </div>
+
+  <!-- D14: wire the boot-error listeners BEFORE the module script so they
+       catch module-graph (import) failures and never leave a forever spinner.
+       Plain inline script (no import) — runs immediately. -->
+  <script>
+    (function () {
+      var BOOT_TIMEOUT_MS = 10000;
+      var booted = false;
+      var shown = false;
+      var timer = null;
+
+      function showError(message) {
+        if (shown || booted) return;
+        shown = true;
+        if (timer) { clearTimeout(timer); timer = null; }
+        var boot = document.getElementById('boot');
+        if (boot) boot.classList.add('hidden');
+        var banner = document.getElementById('boot-error');
+        var msgEl = document.getElementById('boot-error-message');
+        if (msgEl) msgEl.textContent = message || 'Boot failed';
+        if (banner) banner.classList.add('show');
+      }
+
+      // Reload button (text is i18n-applied by app.js; works regardless).
+      var reloadBtn = document.getElementById('boot-error-reload');
+      if (reloadBtn) reloadBtn.addEventListener('click', function () { location.reload(); });
+
+      // Module-graph + runtime failures.
+      window.addEventListener('error', function (e) {
+        var m = (e && (e.message || (e.error && e.error.message))) || 'Script error';
+        showError(m);
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e && e.reason;
+        var m = (r && (r.message || r)) || 'Unhandled promise rejection';
+        showError(String(m));
+      });
+
+      // 10s boot timeout — cleared by app.js once boot completes.
+      timer = setTimeout(function () {
+        showError('Boot timed out after ' + (BOOT_TIMEOUT_MS / 1000) + 's');
+      }, BOOT_TIMEOUT_MS);
+
+      // app.js signals success via window.__bootComplete().
+      window.__bootComplete = function () {
+        booted = true;
+        if (timer) { clearTimeout(timer); timer = null; }
+        var boot = document.getElementById('boot');
+        if (boot) boot.classList.add('hidden');
+      };
+      // Expose for app.js to surface module errors through the same banner.
+      window.__bootError = showError;
+    })();
+  </script>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
