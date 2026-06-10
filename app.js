@@ -112,7 +112,6 @@ function boot() {
     router: null,          // TODO(T13): SPA router registers here
     state,
     dispatcher,
-    eventRiver,            // T12: top event river (subscribes to all events)
     d3: null,              // TODO(T28): d3-loader registers the D3 barrel here
     playHeroStory: null,   // TODO(T30): hero story choreography registers here
     stopHeroStory: null,   // TODO(T30): hero story stop registers here

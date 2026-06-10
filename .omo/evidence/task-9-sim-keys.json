@@ -1,7 +1,10 @@
 {
+  "source": "live browser — page.evaluate(() => Object.keys(window.__SIM)) at http://localhost:8000/index.html",
   "expectedKeyCount": 8,
   "actualKeyCount": 8,
   "keys": ["scheduler","router","state","dispatcher","d3","playHeroStory","stopHeroStory","setEpochLength"],
   "expectedKeys": ["scheduler","router","state","dispatcher","d3","playHeroStory","stopHeroStory","setEpochLength"],
-  "pass": true
+  "hasEventRiverKey": false,
+  "pass": true,
+  "note": "Wave 1.5-2 fix: removed extra 'eventRiver' key from window.__SIM (T9 iron-rule 8-key contract / mandatory check #4). The event-river instance still lives via its dispatcher subscription; it is intentionally not exposed on __SIM."
 }
