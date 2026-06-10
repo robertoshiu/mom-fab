@@ -1,6 +1,13 @@
 // components/chart-kit.js — D3 chart factory (5C-A). NO classes, NO inheritance,
 // NO plugin system — just four closures, each returning {render, update, destroy}.
 //   createLineChart / createBarChart / createGantt / createHeatmap
+//
+// RETURN CONTRACT (T14): each factory returns a chart `api` object, NOT an
+// HTMLElement: { render(target), update(data), destroy(), setLoading(bool),
+// get state() }. Callers render() into a container element they own; render/
+// update/setLoading return the same api for chaining. (Contrast: Table/Dialog
+// return { el, ... } handles — chart factories never own a root element.)
+//
 // Discipline centralized here (H4): destroy() runs selection.interrupt() then
 // .remove(). Tokens consumed for axis (10px) / grid / tooltip (12px) / 200ms
 // (via CSS classes .axis-t/.limit-t/.ck-tooltip in components.css). Built-in

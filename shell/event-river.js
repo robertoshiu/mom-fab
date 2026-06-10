@@ -76,7 +76,8 @@ const CSS = `
   gap: var(--sp-2);
   flex: 0 1 auto;
   min-width: 0;
-  height: 38px;
+  /* 38px lane built from tokens (24 + 12 + a 1px hairline top/bottom pair) */
+  height: calc(var(--sp-5) + var(--sp-3) + var(--bezel-tick-w) + var(--bezel-tick-w));
   overflow: hidden;
 }
 #event-river .river-track {
@@ -86,6 +87,11 @@ const CSS = `
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
+  /* spec: slow leftward drift, tick-aligned heartbeat (60s linear loop) */
+  animation: river-drift 60s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  #event-river .river-track { animation: none; }
 }
 #event-river .river-empty {
   font-size: var(--fs-caption);
@@ -109,9 +115,9 @@ const CSS = `
   gap: var(--sp-1);
   font: var(--fw-body) var(--fs-caption) var(--font-mono);
   font-variant-numeric: tabular-nums;
-  padding: 3px var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--r-dialog);
   color: var(--text-secondary);
   white-space: nowrap;
   cursor: pointer;
@@ -120,7 +126,7 @@ const CSS = `
   animation: chip-enter var(--countup, 800ms) var(--ease-instrument) both;
 }
 .chip:hover { border-color: var(--accent-dim); box-shadow: var(--sh-sm); }
-.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip:focus-visible { outline: calc(var(--bezel-tick-w) * 2) solid var(--accent); outline-offset: calc(var(--bezel-tick-w) * 2); }
 .chip b { color: var(--text-primary); font-weight: var(--fw-emphasis); }
 .chip .chip-glyph { font-weight: var(--fw-emphasis); }
 .chip.exiting { animation: chip-exit var(--transition) var(--ease-instrument) both; }
@@ -156,15 +162,20 @@ const CSS = `
 }
 
 @keyframes chip-enter {
-  from { opacity: 0; transform: translateX(12px); }
+  from { opacity: 0; transform: translateX(var(--sp-3)); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes chip-exit {
   from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 0; transform: translateX(calc(var(--sp-3) * -1)); }
 }
 @keyframes pri-pulse {
-  50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent); }
+  50% { box-shadow: 0 0 0 var(--sp-1) color-mix(in srgb, var(--danger) 18%, transparent); }
+}
+/* slow leftward drift of the whole track — a calm conveyor, not a scroll. */
+@keyframes river-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(var(--sp-3) * -1)); }
 }
 `;
 

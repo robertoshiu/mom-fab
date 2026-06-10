@@ -1,4 +1,10 @@
 // components/dialog.js — pure factory: Dialog(props) -> { el, close }
+//
+// RETURN CONTRACT (T14): Dialog(props) self-mounts to document.body and returns
+// a plain object handle, NOT an HTMLElement: { el: HTMLElement (the backdrop
+// root), dialog: HTMLElement (the modal panel), close() }. Callers do NOT append
+// `el` (already mounted); they only call close() to dismiss + restore focus.
+//
 // Modal with a HAND-ROLLED focus trap (no <dialog>, no library):
 //   - focusin interception: any focus leaving the dialog is pulled back in
 //   - Tab / Shift+Tab cycle within the focusable set (tabindex cycling)

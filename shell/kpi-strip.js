@@ -10,7 +10,7 @@
 // .kpi-value / .led-*); zero raw literals.
 
 import { kpiThresholds } from '../scenarios/mom-fab.js';
-import { t } from '../i18n/index.js';
+import { t, onLocaleChange } from '../i18n/index.js';
 
 // Count-up duration token (kept in sync with --countup: 800ms). Read once from
 // the cascade so we honour prefers-reduced-motion without hardcoding a literal.
@@ -25,6 +25,12 @@ function countupMs() {
 // to pull its value from state, how to render the number, and how to resolve
 // its threshold band (→ LED shape + value colour).
 //   band(state): 'info' | 'warn' | 'danger'  (info = healthy / live data)
+//
+// Trend-delta line (reference .kpi-delta craft): glyph ▲/▼/— shows the DIRECTION
+// of change since the previous tick; colour shows whether that change is GOOD or
+// BAD for the metric. `deltaGood`: 'up' = rising is good, 'down' = falling is good,
+// null = neutral (no semantic colour, just the direction glyph). `deltaUnit` is
+// the trailing label on the delta value (mono caption).
 const CARDS = [
   {
     key: 'wip',
@@ -34,6 +40,8 @@ const CARDS = [
     value: (state) => state.kpis.wip || 0,
     // WIP is "live data", not a graded status → cyan run LED, never amber/red.
     band: () => 'live',
+    deltaGood: null, // WIP swing is neutral inventory movement
+    deltaUnit: '',
   },
   {
     key: 'throughput',
@@ -42,6 +50,8 @@ const CARDS = [
     dec: 0,
     value: (state) => state.kpis.throughput || 0,
     band: (state) => state.kpiBand('throughput'),
+    deltaGood: 'up', // more output is better
+    deltaUnit: 'wfr',
   },
   {
     key: 'yield',
@@ -50,6 +60,8 @@ const CARDS = [
     dec: 1,
     value: (state) => state.kpis.yield || 0,
     band: (state) => state.kpiBand('yield'),
+    deltaGood: 'up', // higher yield is better
+    deltaUnit: 'pt',
   },
   {
     key: 'mtbf',
@@ -59,6 +71,8 @@ const CARDS = [
     value: (state) => state.kpis.mtbf || 0,
     // No manifest threshold for MTBF → steady-state ok.
     band: () => 'info',
+    deltaGood: 'up', // longer time between failures is better
+    deltaUnit: 'hr',
   },
   {
     key: 'oee',
@@ -67,6 +81,8 @@ const CARDS = [
     dec: 1,
     value: (state) => state.kpis.oee || 0,
     band: (state) => state.kpiBand('oee'),
+    deltaGood: 'up', // higher efficiency is better
+    deltaUnit: 'pt',
   },
   {
     key: 'alarms',
@@ -74,6 +90,8 @@ const CARDS = [
     unit: '',
     dec: 0,
     value: (state) => (state.alarms ? state.alarms.length : 0),
+    deltaGood: 'down', // fewer active alarms is better
+    deltaUnit: '',
     // Alarms are higher-is-worse (opposite of yield/oee): 0 = ok, any active =
     // warn, several = danger. Threshold count derived from manifest discipline:
     // a single active alarm is a caution, the OEE danger gate count is a fault.
@@ -103,6 +121,9 @@ const LED_CLASS = {
 // 'info'/'live' leave the value at --text-primary (no decoration).
 const VALUE_CLASS = { warn: 'kpi-warn', danger: 'kpi-danger' };
 
+// Direction glyph for the trend-delta line (colour-blind safe shape encoding).
+const DELTA_GLYPH = { up: '▲', down: '▼', flat: '—' }; // ▲ ▼ —
+
 export class KpiStrip {
   /**
    * @param {HTMLElement} container  the #kpi-strip element
@@ -114,13 +135,27 @@ export class KpiStrip {
     this.cards = new Map(); // key → { root, valueNode, unitEl, ledEl, displayed, anim, target }
     this._built = false;
     this._raf = null;
+    this._offLocale = null;
   }
 
   init() {
     this._build();
+    // 6A / T11: re-pull labels the instant the locale flips — no 1-tick lag.
+    // We only refresh the i18n text (idempotent DOM patch), never the values.
+    this._offLocale = onLocaleChange(() => this._refreshLabels());
     // Paint immediately so the strip is never blank between init and first tick.
     this.update(this.state && this.state.kpis ? 0 : 0);
     return this;
+  }
+
+  // Re-pull every label + unit from i18n without touching value animations.
+  // Called immediately on locale change so labels never lag a tick behind.
+  _refreshLabels() {
+    if (!this._built) return;
+    for (const entry of this.cards.values()) {
+      entry.labelText.textContent = t(entry.desc.i18n);
+      entry.unitEl.textContent = entry.desc.unit;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -151,8 +186,15 @@ export class KpiStrip {
       unitEl.className = 'unit';
       value.appendChild(unitEl);
 
+      // trend-delta line (reference .kpi-delta craft): glyph + signed magnitude.
+      const deltaEl = document.createElement('span');
+      deltaEl.className = 'kpi-delta';
+      deltaEl.setAttribute('aria-hidden', 'true'); // decorative; value carries the data
+      deltaEl.textContent = DELTA_GLYPH.flat + ' ' + (0).toFixed(desc.dec); // flat baseline
+
       root.appendChild(label);
       root.appendChild(value);
+      root.appendChild(deltaEl);
       this.container.appendChild(root);
 
       this.cards.set(desc.key, {
@@ -161,9 +203,11 @@ export class KpiStrip {
         labelText,
         valueNum,
         unitEl,
+        deltaEl,
         ledEl: led,
         displayed: 0, // last value painted to the DOM
         target: 0, // authoritative value we are animating toward
+        prevTarget: null, // last settled target (delta basis); null until first paint
         animFrom: 0,
         animStart: 0,
       });
@@ -198,6 +242,12 @@ export class KpiStrip {
       // value: kick off a fresh count-up only when the target actually changes.
       const next = desc.value(state);
       if (next !== entry.target) {
+        // trend-delta: change since the last settled target. On the very first
+        // paint there is no prior reading, so show a flat baseline (no spurious
+        // "delta == full value"). Render-only — derived from authoritative state.
+        const firstPaint = entry.prevTarget == null;
+        this._paintDelta(entry, firstPaint ? 0 : next - entry.target);
+        entry.prevTarget = entry.target;
         entry.animFrom = entry.displayed;
         entry.target = next;
         entry.animStart = now;
@@ -207,6 +257,24 @@ export class KpiStrip {
     }
 
     if (needsRaf) this._ensureRaf();
+  }
+
+  // Render the trend-delta line: direction glyph (▲/▼/—) + signed magnitude +
+  // unit. Colour = whether the change is GOOD or BAD for this metric (success /
+  // danger); neutral metrics get no colour. Pure display (no state mutation).
+  _paintDelta(entry, diff) {
+    const { desc, deltaEl } = entry;
+    const dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+    const mag = Math.abs(diff).toFixed(desc.dec);
+    const unit = desc.deltaUnit ? ' ' + desc.deltaUnit : '';
+    deltaEl.textContent = DELTA_GLYPH[dir] + ' ' + mag + unit;
+
+    // direction → semantic colour via the card's deltaGood orientation.
+    deltaEl.classList.remove('up', 'down');
+    if (dir !== 'flat' && desc.deltaGood) {
+      const good = dir === desc.deltaGood;
+      deltaEl.classList.add(good ? 'up' : 'down');
+    }
   }
 
   // Advance one card toward its target; returns true if still animating.
@@ -243,6 +311,7 @@ export class KpiStrip {
       cancelAnimationFrame(this._raf);
       this._raf = null;
     }
+    if (this._offLocale) { this._offLocale(); this._offLocale = null; }
     this.cards.clear();
     this.container.textContent = '';
     this._built = false;
@@ -255,14 +324,26 @@ export class KpiStrip {
     const style = document.createElement('style');
     style.id = 'kpi-strip-style';
     style.textContent = [
-      '#kpi-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-2); }',
-      '#kpi-strip .kpi-card { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }',
-      '#kpi-strip .label { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); }',
-      '#kpi-strip .kpi-label-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
-      '#kpi-strip .kpi-value { font-size: var(--fs-kpi); font-weight: var(--fw-kpi); line-height: 1.05; color: var(--text-primary); }',
+      // 6 equal tracks, each with a token-scaled floor wide enough for a 4-digit
+      // 32px mono value (~3×--sp-7 = 144px) + the full bilingual short label, so
+      // nothing clips at 1920. minmax lets cards still flex on narrower frames.
+      '#kpi-strip { display: grid; grid-template-columns: repeat(6, minmax(calc(var(--sp-7) * 3), 1fr)); gap: var(--sp-2); }',
+      '#kpi-strip .kpi-card { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; overflow: hidden; }',
+      '#kpi-strip .label { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); min-width: 0; }',
+      // full bilingual label on one line; ellipsis is only a last-resort guard.
+      '#kpi-strip .kpi-label-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }',
+      '#kpi-strip .led { flex: none; }',
+      // value: tabular mono, never clipped — line-height leaves room for the
+      // 32px glyph cap/descender; nowrap keeps a 4-digit value on one line.
+      '#kpi-strip .kpi-value { font-size: var(--fs-kpi); font-weight: var(--fw-kpi); line-height: 1.1; color: var(--text-primary); white-space: nowrap; min-width: 0; }',
       '#kpi-strip .kpi-value .unit { font-size: var(--fs-caption); font-weight: var(--fw-body); color: var(--text-secondary); margin-left: var(--sp-1); }',
       '#kpi-strip .kpi-card.kpi-warn .kpi-value { color: var(--warn); }',
       '#kpi-strip .kpi-card.kpi-danger .kpi-value { color: var(--danger); }',
+      // trend-delta line (reference .kpi-delta craft): mono caption, neutral by
+      // default; direction colour applied via .up (success) / .down (danger).
+      '#kpi-strip .kpi-delta { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-caption); font-weight: var(--fw-body); color: var(--text-secondary); white-space: nowrap; }',
+      '#kpi-strip .kpi-delta.up { color: var(--success); }',
+      '#kpi-strip .kpi-delta.down { color: var(--danger); }',
     ].join('\n');
     document.head.appendChild(style);
   }

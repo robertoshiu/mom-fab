@@ -57,35 +57,41 @@
       min-width: 0;
       overflow: hidden;
     }
+    /* topbar = two stacked lanes (reference structure): row 1 product+KPI strip,
+       row 2 the full-width event-river lane. */
     #topbar {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
       align-items: center;
-      gap: var(--sp-4);
+      column-gap: var(--sp-4);
+      row-gap: var(--sp-2);
       padding: var(--sp-2) var(--sp-4);
       border-bottom: 1px solid var(--hairline);
       background: var(--bg-elevated);
       flex: 0 0 auto;
     }
     #product-name {
+      grid-row: 1;
+      grid-column: 1;
       font-weight: var(--fw-emphasis);
       font-size: var(--fs-subtitle);
       letter-spacing: var(--label-tracking);
       white-space: nowrap;
-      flex: 0 0 auto;
+      align-self: center;
     }
     /* read the --brand-name token as the product name text */
     #product-name::after { content: var(--brand-name); }
 
     #kpi-strip {
-      display: flex;
-      gap: var(--sp-2);
-      flex: 1 1 auto;
+      grid-row: 1;
+      grid-column: 2;
       min-width: 0;
     }
+    /* event river: its own full-width lane spanning both columns, below KPIs */
     #event-river {
-      display: flex;
-      gap: var(--sp-2);
-      flex: 0 1 auto;
+      grid-row: 2;
+      grid-column: 1 / -1;
       min-width: 0;
       overflow: hidden;
     }

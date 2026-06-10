@@ -1,4 +1,10 @@
 // components/table.js — pure factory: Table(props) -> { el, update, destroy }
+//
+// RETURN CONTRACT (T14): Table(props) returns a plain object handle, NOT an
+// HTMLElement: { el: HTMLElement, update(rows), destroy(), scrollEl: HTMLElement }.
+// Callers mount `el` and drive the table via update()/destroy() (the live root
+// is `el`; `scrollEl` is the inner virtual-scroll viewport for scroll control).
+//
 // Reuses .table theme classes. Fixed row height 36px (M6 — no variable rows).
 // virtual=true: only the visible window of rows is in the DOM (1000 rows render
 // well under 50 <tr>). sortable + filterable supported. No classes (F4).
