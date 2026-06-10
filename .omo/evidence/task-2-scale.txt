@@ -1,0 +1,7 @@
+=== Task 2 — Scale check (.omo/evidence/task-2-scale.txt) ===
+Expected: 100 lots, wafer sum === 2500
+lots: 100
+wafer sum: 2500
+sum===2500: true
+pregenerate(): lots=100 equipment=100 recipes=50 groups=8
+Result => PASS

@@ -1,0 +1,5 @@
+=== Task 2 — Lot determinism (.omo/evidence/task-2-lot-determinism.txt) ===
+Command: node -e import('./engine/factory.js') createLot('L-001','LOGIC-A') x2, JSON.stringify equality
+JSON.stringify(a)===JSON.stringify(b): true
+lot A: {"id":"L-001","product":"LOGIC-A","wafers":25,"priority":2,"route":["LOGIC-A-S01","LOGIC-A-S02","LOGIC-A-S03","LOGIC-A-S04","LOGIC-A-S05","LOGIC-A-S06","LOGIC-A-S07","LOGIC-A-S08","LOGIC-A-S09","LOGIC-A-S10","LOGIC-A-S11","LOGIC-A-S12","LOGIC-A-S13","LOGIC-A-S14"],"startTick":88}
+Expected: true  => PASS

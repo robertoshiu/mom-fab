@@ -1,0 +1,10 @@
+=== Task 2 — No hardcoded domain names + banned-API scan (engine/factory.js) ===
+--- grep hardcoded product names (LOGIC-A/LOGIC-B/MEM-DDR/MEM-NAND/RF-GaN) ---
+0 hits (PASS — product names imported from scenarios/mom-fab.js)
+--- grep hardcoded tool-group names (Photolithography/Etch/CVD/PVD/CMP/Implant/Inspection/WetClean) ---
+0 hits (PASS — tool-group names imported from scenarios/mom-fab.js)
+--- banned API scan (Math.random / Date.now / new Date / crypto.getRandomValues) ---
+0 hits (PASS — deterministic PRNG only)
+--- imports (constants sourced from manifest) ---
+7:import { mulberry32, fnv1a } from './prng.js';
+8:import {
