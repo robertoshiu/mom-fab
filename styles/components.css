@@ -1,0 +1,126 @@
+/* ============================================================
+   components.css — shell-scoped component styles (T10)
+   Ports the design/reference-spc.html nav-rail craft (.mod, tooltip,
+   rail buttons) into token-only values. The reference inlined these;
+   here they live in a shared stylesheet so the shell + later modules
+   reuse one source. Zero raw font-size / spacing / color literals.
+   Canonical design system: /DESIGN.md
+   ============================================================ */
+
+/* ---- nav rail buttons (the 72px instrument rail) ---- */
+.mod {
+  position: relative;
+  width: 56px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  border: 1px solid transparent;
+  border-radius: var(--r-card);
+  color: var(--text-secondary);
+  background: none;
+  font: var(--fw-emphasis) var(--fs-caption) var(--font-mono);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition),
+              background-color var(--transition);
+}
+.mod .icon {
+  width: 16px;
+  height: 16px;
+}
+.mod:hover { color: var(--text-primary); }
+.mod:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mod.active {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+/* ---- tooltip: bilingual full name on hover AND keyboard focus ---- */
+.mod .tip {
+  position: absolute;
+  left: 64px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  white-space: nowrap;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-md);
+  font: var(--fw-body) var(--fs-caption) var(--font-body);
+  color: var(--text-primary);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.mod:hover .tip,
+.mod:focus-visible .tip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ---- rail spacer + bottom control buttons (theme / locale / demo) ---- */
+.mod-spacer { flex: 1 1 auto; }
+
+.rail-btn {
+  position: relative;
+  width: 40px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--sp-1);
+  font: var(--fw-emphasis) var(--fs-caption) var(--font-mono);
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.rail-btn .icon { width: 16px; height: 16px; }
+.rail-btn:hover { color: var(--accent); border-color: var(--accent-dim); }
+.rail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rail-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.rail-btn-demo { color: var(--accent); }
+.rail-btn-demo:disabled { color: var(--accent); }
+
+/* bottom rail buttons share the .mod tooltip vocabulary */
+.rail-btn .tip {
+  position: absolute;
+  left: 48px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  white-space: nowrap;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-md);
+  font: var(--fw-body) var(--fs-caption) var(--font-body);
+  color: var(--text-primary);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.rail-btn:hover .tip,
+.rail-btn:focus-visible .tip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ---- POST boot choreography: rail items fade up in sequence ---- */
+.mod.boot-seq,
+.rail-btn.boot-seq {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: nav-boot 600ms var(--ease-instrument) forwards;
+  animation-delay: var(--nav-d, 0ms);
+}
+@keyframes nav-boot { to { opacity: 1; transform: none; } }
