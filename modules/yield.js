@@ -108,6 +108,14 @@ const CSS = `
 #content .yield-grid #y-pareto .ck-host { cursor: pointer; }
 #content .yield-grid #y-pareto .ck-host rect.ck-bar { cursor: pointer; }
 
+/* Design-debt polish (T26): mono value label above each Pareto bar — engraved
+   count in the accent tone, tabular mono so columns of counts align. */
+#content .yield-grid #y-pareto .ck-host text.y-bar-val {
+  font: var(--fw-emphasis) var(--chart-axis-fs) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  fill: var(--accent);
+}
+
 /* drill-down lot list inside the Dialog body */
 .yield-drill-list { min-width: 380px; max-height: 320px; overflow-y: auto; }
 .yield-drill-summary {
@@ -327,11 +335,16 @@ export default {
     container_append(this._container, grid);
 
     // chart-kit factories (axis/tooltip/limit scaffolding centralised; 2A states)
+    // Design-debt polish (T26): instrument restraint, not solid-cyan mass bars.
+    // Low-saturation fill (~15% accent mixed into the panel ground) reads as a
+    // measured quantity rather than a glowing block; the hairline accent-dim
+    // stroke + mono value labels above each bar are applied in _tagParetoBars
+    // after the chart-kit transition settles (chart-kit is read-only).
     this._pareto = createBarChart({
       emptyI18nKey: 'states.yield.empty',
       predictedTick: FIRST_INSPECTION_TICK,
       ariaLabel: t('yield.pareto'),
-      color: 'var(--accent)',
+      color: 'color-mix(in srgb, var(--accent) 15%, var(--bg-inset))',
     });
     this._pareto.render(this._paretoHost);
     this._pareto.setLoading();
@@ -525,11 +538,56 @@ export default {
 
   // After a bar update + transition, attach the type name to each rect so click
   // delegation can resolve it. d3 join keeps order = paretoData order.
+  // Design-debt polish (T26): also apply instrument restraint to each bar —
+  //   • hairline stroke in accent-dim (the bar reads as an outlined measure)
+  //   • mono value label centred above the bar (engraved count, not a glow)
+  // chart-kit owns the fill (low-sat color-mix via config.color) + the y/height
+  // transition; we layer stroke + label here because chart-kit is read-only.
   _tagParetoBars(paretoData) {
     if (!this._paretoHost) return;
     const bars = this._paretoHost.querySelectorAll('rect.ck-bar');
     bars.forEach((bar, i) => {
       if (paretoData[i]) bar.__yieldType = paretoData[i].label;
+      // hairline accent-dim stroke (1px literal allowed by the iron rules).
+      bar.setAttribute('stroke', 'var(--accent-dim)');
+      bar.setAttribute('stroke-width', '1');
+    });
+
+    // Mono value labels above each bar. The bars' y/height animate over the
+    // chart-kit 200ms transition, so we place the labels once the transition has
+    // settled (single scheduled frame; cancelled in destroy via this._raf). We
+    // read each rect's settled top from its own attributes — no private scale.
+    const svg = this._paretoHost.querySelector('svg');
+    const g = svg && svg.querySelector('g');
+    if (!g) return;
+    if (this._raf) cancelAnimationFrame(this._raf);
+    const place = () => {
+      this._raf = null;
+      // clear any previous labels (full reconcile — labels are cheap text nodes).
+      g.querySelectorAll('text.y-bar-val').forEach((n) => n.remove());
+      const liveBars = this._paretoHost.querySelectorAll('rect.ck-bar');
+      const NS = 'http://www.w3.org/2000/svg';
+      liveBars.forEach((bar, i) => {
+        const d = paretoData[i];
+        if (!d || !(d.value > 0)) return; // no label on zero-count types
+        const x = parseFloat(bar.getAttribute('x')) || 0;
+        const w = parseFloat(bar.getAttribute('width')) || 0;
+        const y = parseFloat(bar.getAttribute('y')) || 0;
+        const label = document.createElementNS(NS, 'text');
+        label.setAttribute('class', 'y-bar-val num');
+        label.setAttribute('x', String(x + w / 2));
+        label.setAttribute('y', String(Math.max(8, y - 4)));
+        label.setAttribute('text-anchor', 'middle');
+        label.textContent = String(d.value);
+        g.appendChild(label);
+      });
+    };
+    // wait out the chart-kit transition (200ms) so the settled top is readable;
+    // a chained rAF after a short timeout keeps it off the critical paint path.
+    this._raf = requestAnimationFrame(() => {
+      setTimeout(() => {
+        this._raf = requestAnimationFrame(place);
+      }, 210);
     });
   },
 

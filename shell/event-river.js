@@ -255,6 +255,25 @@ export class EventRiver {
     this._mounted = false;
   }
 
+  // -------------------------------------------------------------------------
+  // M3 EPOCH CHOREOGRAPHY hooks (T26). Render-only — the dispatcher emits are
+  // frozen by the TickScheduler during the choreography window, so no new chips
+  // arrive while we slide the current track out. epochSlideOut adds the .epoch-out
+  // envelope class (CSS slides the whole track left + fades over 0.3s); epochRefill
+  // clears the store + the class so the new epoch's chips re-enter via chip-enter.
+  // -------------------------------------------------------------------------
+  epochSlideOut() {
+    if (this.container) this.container.classList.add('epoch-out');
+  }
+
+  // Clear the carried-over chips and release the slide envelope so the next
+  // epoch's events stream into an empty, drifting track (refill = phase e).
+  epochRefill() {
+    if (this.container) this.container.classList.remove('epoch-out');
+    this._events = [];
+    this._render(); // back to the EMPTY state until tick-0 events arrive
+  }
+
   // --- state-first: mutate the store, then patch the DOM (2B) ---------------
   _ingest(type, payload) {
     const ev = {

@@ -136,6 +136,7 @@ export class KpiStrip {
     this._built = false;
     this._raf = null;
     this._offLocale = null;
+    this._choreoDur = null; // temp count duration override during epoch choreo (M3)
   }
 
   init() {
@@ -278,8 +279,11 @@ export class KpiStrip {
   }
 
   // Advance one card toward its target; returns true if still animating.
+  // During an epoch choreography phase (count-down/up) a temporary _choreoDur
+  // overrides the standard 0.8s count-up window so the wind-down (0.3s) and
+  // refill (0.5s) match the M3 timeline; cleared back to null afterward.
   _stepCard(entry, now, dec) {
-    const dur = countupMs();
+    const dur = this._choreoDur != null ? this._choreoDur : countupMs();
     const p = Math.min(Math.max((now - entry.animStart) / dur, 0), 1);
     const e = 1 - Math.pow(1 - p, 3); // ease-out cubic (matches reference)
     const v = entry.animFrom + (entry.target - entry.animFrom) * e;
@@ -306,11 +310,80 @@ export class KpiStrip {
     this._raf = requestAnimationFrame(tickFrame);
   }
 
+  // -------------------------------------------------------------------------
+  // M3 EPOCH CHOREOGRAPHY hooks (T26). Render-only — these animate the DISPLAYED
+  // numbers and toggle the dim envelope class; they NEVER touch simulation state
+  // (10A). The TickScheduler's onChoreography window freezes emits, so during
+  // count-down the authoritative state.kpis is paused — we drive the visual
+  // wind-down/refill purely through each card's displayed value + animStart.
+  //
+  // choreoCountdown(ms): phase (a) — every card's number eases to 0 over `ms`
+  // (default 300) while the strip dims via the .epoch-countdown class.
+  // -------------------------------------------------------------------------
+  choreoCountdown(ms = 300) {
+    if (!this._built) return;
+    // reduced-motion: instant — drop to 0 with no envelope, no rAF spin.
+    const reduce = typeof matchMedia === 'function'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.container.classList.add('epoch-countdown');
+    const now = performance.now();
+    this._choreoDur = reduce ? 1 : ms;
+    for (const entry of this.cards.values()) {
+      entry.animFrom = entry.displayed;
+      entry.target = 0;
+      entry.animStart = now;
+      if (reduce) {
+        entry.displayed = 0;
+        entry.valueNum.nodeValue = (0).toFixed(entry.desc.dec);
+      }
+    }
+    if (!reduce) this._ensureRaf();
+  }
+
+  // choreoCountup(ms): phase (d) — release the dim envelope and let the cards
+  // ease from 0 back UP to the live state value over `ms` (default 500). We
+  // re-read the authoritative value here (emits have resumed by the time the
+  // controller calls this), so the strip lands on the new epoch's real numbers.
+  choreoCountup(ms = 500) {
+    if (!this._built) return;
+    const reduce = typeof matchMedia === 'function'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.container.classList.remove('epoch-countdown');
+    const now = performance.now();
+    this._choreoDur = reduce ? 1 : ms;
+    const state = this.state;
+    for (const entry of this.cards.values()) {
+      const live = entry.desc.value(state);
+      entry.prevTarget = entry.target;
+      entry.animFrom = entry.displayed;
+      entry.target = live;
+      entry.animStart = now;
+      if (reduce) {
+        entry.displayed = live;
+        entry.valueNum.nodeValue = live.toFixed(entry.desc.dec);
+      }
+    }
+    // After the count-up settles, drop the choreo duration override so the next
+    // ordinary tick count-up uses the standard 0.8s window again.
+    if (!reduce) {
+      this._ensureRaf();
+      const releaseAt = now + ms;
+      const release = () => {
+        if (performance.now() >= releaseAt) { this._choreoDur = null; return; }
+        requestAnimationFrame(release);
+      };
+      requestAnimationFrame(release);
+    } else {
+      this._choreoDur = null;
+    }
+  }
+
   destroy() {
     if (this._raf != null) {
       cancelAnimationFrame(this._raf);
       this._raf = null;
     }
+    this.container.classList.remove('epoch-countdown');
     if (this._offLocale) { this._offLocale(); this._offLocale = null; }
     this.cards.clear();
     this.container.textContent = '';

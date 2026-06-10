@@ -139,11 +139,61 @@ function boot() {
   // --- TickScheduler with epoch-reset hooks wired in T4's order contract ---
   // The scheduler OWNS the order (snapshot → clear → reset → choreo → resume);
   // we only supply the callbacks. Choreography is a null-op until T26/T30.
+  // M3 (T26) — the 1.2s choreographed epoch transition. The scheduler owns the
+  // 4A order (freeze → snapshot → clear → reset → CHOREO → resume) and calls
+  // onChoreography(1200) synchronously after currentTick rewinds to 0; emits stay
+  // frozen for the whole window. We sequence the five visible beats here:
+  //   (a) 0.0–0.3s  KPI numbers count DOWN to 0      (kpiStrip.choreoCountdown)
+  //   (b) 0.0–0.3s  river chips slide OUT left       (eventRiver.epochSlideOut)
+  //   (c) 0.3–0.6s  content crossfade out → in       (#content .epoch-crossfade)
+  //   (d) 0.6–1.1s  KPI numbers count back UP        (kpiStrip.choreoCountup)
+  //   (e) 0.6s      river refills (cleared → re-enter on tick-0 emits)
+  // Reduced-motion: the hooks each early-return to an instant swap, so the whole
+  // transition collapses to a single frame (no slide, no dim, no fade).
+  const contentEl = document.getElementById('content');
+  let _choreoTimers = [];
+  function clearChoreoTimers() {
+    for (const id of _choreoTimers) clearTimeout(id);
+    _choreoTimers = [];
+  }
+  function runEpochChoreography(windowMs) {
+    clearChoreoTimers();
+    const reduce = typeof matchMedia === 'function'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // (a) + (b): wind the KPIs down to 0 and slide the river out (both 0.3s).
+    kpiStrip.choreoCountdown(300);
+    eventRiver.epochSlideOut();
+
+    if (reduce) {
+      // instant swap: refill + restore numbers immediately, no timeline.
+      eventRiver.epochRefill();
+      kpiStrip.choreoCountup(500);
+      return;
+    }
+
+    // (c) content crossfade out at 0.3s, back in at 0.6s.
+    _choreoTimers.push(setTimeout(() => {
+      if (contentEl) contentEl.classList.add('epoch-crossfade');
+    }, 300));
+    _choreoTimers.push(setTimeout(() => {
+      if (contentEl) contentEl.classList.remove('epoch-crossfade');
+    }, 600));
+
+    // (e) river refills + (d) KPIs count back up, starting at 0.6s so the
+    // refill lands as content returns; count-up (0.5s) finishes by ~1.1s, well
+    // inside the 1.2s window before emits resume.
+    _choreoTimers.push(setTimeout(() => {
+      eventRiver.epochRefill();
+      kpiStrip.choreoCountup(500);
+    }, 600));
+  }
+
   const scheduler = new TickScheduler({
     onFreeze: () => {},
     onSnapshot: () => state.snapshotForEpochReset(),
     onClearOverrides: () => state.suppressOverrides.clear(),
-    onChoreography: () => {}, // TODO(T26/T30): 1.2s choreographed transition
+    onChoreography: (windowMs) => runEpochChoreography(windowMs), // M3 1.2s transition (T26)
     onResume: () => {},
   });
 

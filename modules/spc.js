@@ -277,6 +277,26 @@ const CSS = `
 }
 @keyframes spc-shimmer { to { background-position: -200% 0; } }
 
+/* Design-debt polish (T26): PARTIAL state (window <50) — make the left-anchored
+   plot + faded right grid read as intentional, not half-drawn. */
+#spc-root .spc-future {
+  fill: var(--bg-inset);
+  opacity: 0.35;
+  pointer-events: none;
+}
+#spc-root .spc-future-edge {
+  stroke: var(--accent-dim);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
+#spc-root .spc-future-note {
+  fill: var(--text-secondary);
+  font: var(--fw-emphasis) var(--chart-axis-fs) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--label-tracking);
+  pointer-events: none;
+}
 /* violation point pulse (live + violation) — aligned to the tick heartbeat */
 #spc-root .ck-pt.spc-viol { animation: spc-viol-pulse calc(var(--tick) * 1.5) var(--ease-instrument) infinite; transform-origin: center; transform-box: fill-box; }
 @keyframes spc-viol-pulse { 50% { transform: scale(1.7); opacity: 0.6; } }
@@ -613,6 +633,12 @@ const spc = {
     this._xbarChart.update(xbarData);
     this._rChart.update(rData);
     this._decoratePoints();
+    // Design-debt polish (T26): when the sliding window is not yet full (<50),
+    // make the left-anchored plot + faded right grid read as INTENTIONAL — a
+    // dimmed "future region" with an engraved fill annotation, not a half-drawn
+    // chart. xbar drives the window length (R chart shares the same cadence).
+    this._decoratePartial(this._xbarHost, xbarData.length, this._xbarChart.state);
+    this._decoratePartial(this._rHost, rData.length, this._rChart.state);
 
     // --- rule rows: hit counts + .hit highlight on enabled+hitting rules ---
     this._ruleRows.forEach(({ n, row, num }) => {
@@ -680,6 +706,63 @@ const spc = {
     // I3: re-assert the yield-alert marker on the live X-bar point after a fresh
     // chart redraw (decorate runs every update and rebuilds the point classes).
     if (this._yieldMark) this._markLivePoint();
+  },
+
+  // Design-debt polish (T26): the PARTIAL state (window not yet 50 samples) must
+  // look deliberate. We add a faded "future region" overlay to the right of the
+  // last sample + an engraved n/50 annotation, and flag the host so CSS dims the
+  // gridlines that fall beyond the data. Cleared the moment the window fills
+  // (state === 'success') so the full chart has no leftover scaffolding.
+  _decoratePartial(host, n, state) {
+    if (!host) return;
+    const svg = host.querySelector('svg');
+    if (!svg) { return; }
+    const g = svg.querySelector('g');
+    // always clear prior partial scaffolding first (idempotent full reconcile)
+    if (g) g.querySelectorAll('.spc-partial').forEach((el) => el.remove());
+    host.classList.toggle('is-partial', state === 'partial');
+    if (state !== 'partial' || !g || n <= 0) return;
+
+    // boundary x = position of the last drawn sample within the WINDOW domain.
+    // chart-kit maps [0, WINDOW-1] across the inner width (margins: l46 r50 t16 b26).
+    const ML = 46, MR = 50, MT = 16, MB = 26;
+    const W = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : (svg.clientWidth || 0);
+    const H = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : (svg.clientHeight || 0);
+    const iw = Math.max(0, W - ML - MR);
+    const ih = Math.max(0, H - MT - MB);
+    if (iw <= 0 || ih <= 0) return;
+    const bx = (Math.max(0, n - 1) / Math.max(1, WINDOW - 1)) * iw;
+    const NS = 'http://www.w3.org/2000/svg';
+
+    // faded future-region rect from the last sample to the right edge.
+    const region = document.createElementNS(NS, 'rect');
+    region.setAttribute('class', 'spc-partial spc-future');
+    region.setAttribute('x', String(bx));
+    region.setAttribute('y', '0');
+    region.setAttribute('width', String(Math.max(0, iw - bx)));
+    region.setAttribute('height', String(ih));
+    g.appendChild(region);
+
+    // hairline boundary marker at the live edge.
+    const sep = document.createElementNS(NS, 'line');
+    sep.setAttribute('class', 'spc-partial spc-future-edge');
+    sep.setAttribute('x1', String(bx));
+    sep.setAttribute('x2', String(bx));
+    sep.setAttribute('y1', '0');
+    sep.setAttribute('y2', String(ih));
+    g.appendChild(sep);
+
+    // engraved n/WINDOW annotation in the future region (only on the X-bar host
+    // where there is room; skip if the region is too narrow to read).
+    if (iw - bx > 40) {
+      const note = document.createElementNS(NS, 'text');
+      note.setAttribute('class', 'spc-partial spc-future-note num');
+      note.setAttribute('x', String(bx + 6));
+      note.setAttribute('y', '12');
+      note.setAttribute('text-anchor', 'start');
+      note.textContent = `${n}/${WINDOW}`;
+      g.appendChild(note);
+    }
   },
 
   _epochSeed() {

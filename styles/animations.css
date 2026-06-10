@@ -1,0 +1,160 @@
+/* ============================================================
+   animations.css — MOM FAB motion polish (T26 + M3)
+   Loaded AFTER theme.css so these rules consolidate / extend the
+   base interaction motion already defined there. Every animation
+   aligns to the instrument easing token (--ease-instrument, no
+   bounce) and is fully gated by prefers-reduced-motion.
+
+   Scope of this sheet:
+     1. Unified interaction motion (button hover / card hover /
+        focus ring / modal open).  Button hover + focus ring are
+        ALREADY implemented in theme.css (.btn:hover translateY,
+        .btn:focus-visible ring) — we DO NOT duplicate them; we add
+        the missing pieces (card hover accent, a generic focus ring
+        for non-.btn interactive surfaces, modal open choreography).
+     2. M3 epoch choreography: the 1.2s choreographed loop transition
+        classes the scheduler's onChoreography hook toggles
+        (KPI count-down, river slide-out, content crossfade).
+   ============================================================ */
+
+/* ------------------------------------------------------------------
+   1. INTERACTION MOTION
+   ------------------------------------------------------------------ */
+
+/* Unified button hover: 0.15s ease-out translateY(-1px) + shadow.
+   theme.css ALREADY implements this for the primary control class:
+     .btn:hover { transform: translateY(-1px); box-shadow: var(--sh-sm); }  (150ms)
+     .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+   So .btn is left untouched (single source of truth stays in theme.css).
+   The nav rail buttons (.mod) and bottom rail buttons (.rail-btn) live in
+   components.css and only change COLOUR on hover — they were missing the lift.
+   We consolidate the motion here so EVERY button in the instrument shares one
+   hover language (lift + shadow), without disturbing their colour/border rules
+   (which stay in their own sheets). .mod's child .tip tooltip has its own
+   transform and is unaffected (the rule targets the button element itself). */
+.mod,
+.rail-btn {
+  transition: transform 150ms ease-out, color var(--transition),
+              border-color var(--transition), box-shadow var(--transition);
+}
+.mod:hover,
+.rail-btn:hover {
+  /* components.css keeps the boot-seq nav-boot animation with fill-mode:forwards,
+     whose final `transform: none` keyframe PERMANENTLY shadows a normal hover
+     transform (animated values beat normal author declarations). An !important
+     author declaration is the one thing that beats an animation, so the hover
+     lift needs it here — scoped to :hover only, it never touches the boot lift. */
+  transform: translateY(-1px) !important;
+  box-shadow: var(--sh-sm);
+}
+/* Disabled / active states should not lift. */
+.mod:disabled,
+.rail-btn:disabled { transform: none; }
+
+/* Card hover: 1px border accent (the card lifts to a "live" border without
+   moving — data surfaces stay put; only the bezel responds). Pairs with the
+   existing .card box-shadow from theme.css. */
+.card {
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.card:hover {
+  border-color: var(--accent-dim);
+}
+
+/* Generic focus ring for interactive surfaces that are NOT .btn (chips already
+   carry their own ring; this covers cards, table rows, nav items, summary, and
+   any [tabindex] host). 2px solid accent, 2px offset — matches the .btn ring so
+   the whole instrument has one focus language. */
+.card:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Modal open: 0.2s opacity + scale. The Dialog factory mounts .dialog-backdrop
+   (scrim) + .dialog (panel) directly to <body>, so a CSS entry animation runs
+   the instant they are inserted — no JS class hook needed. Close is synchronous
+   removal in dialog.js (no exit hook available from this sheet); open motion is
+   the meaningful one and is covered here. */
+.dialog-backdrop {
+  animation: modal-scrim-in var(--transition) var(--ease-instrument) both;
+}
+.dialog {
+  animation: modal-panel-in var(--transition) var(--ease-instrument) both;
+  transform-origin: center;
+}
+@keyframes modal-scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modal-panel-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ------------------------------------------------------------------
+   2. M3 EPOCH CHOREOGRAPHY — the 1.2s choreographed loop transition.
+   The TickScheduler owns the order (snapshot → clear → reset → CHOREO
+   → resume) and calls onChoreography(1200) once tick rewinds to 0.
+   app.js's hook toggles the classes below in a sequenced timeline:
+
+     (a) 0.0–0.3s  KPI numbers count DOWN to 0   →  #kpi-strip.epoch-countdown
+     (b) 0.0–0.3s  river chips slide OUT left     →  #event-river.epoch-out
+     (c) 0.3–0.6s  content crossfade              →  #content.epoch-crossfade
+     (d) 0.6–1.1s  KPI numbers count back UP      →  (JS-driven count-up; the
+                                                       countdown class is removed)
+     (e) 1.1–1.2s  river refills                  →  class removed → chips re-enter
+
+   The numeric count-down / count-up itself is render-only JS in kpi-strip.js
+   (it animates the displayed value toward 0 then back to the live value); the
+   classes here supply the OPACITY / TRANSFORM envelope so the strip + river +
+   content move as one calibrated instrument rather than a hard cut.
+   ------------------------------------------------------------------ */
+
+/* (a) KPI strip dims while the numbers wind down to zero, then settles back. */
+#kpi-strip.epoch-countdown .kpi-card {
+  transition: opacity 300ms var(--ease-instrument);
+  opacity: 0.45;
+}
+
+/* (b) Event river: the whole track slides out to the left + fades over 0.3s.
+   This is the ONE place a container translateX is intentional (the normal
+   per-chip drift is unaffected — this class overrides it for the transition). */
+#event-river.epoch-out .river-track {
+  animation: none; /* halt the calm drift loop during the choreographed slide */
+  transition: transform 300ms var(--ease-instrument), opacity 300ms var(--ease-instrument);
+  transform: translateX(calc(var(--sp-7) * -1));
+  opacity: 0;
+}
+
+/* (c) Content crossfade: the active module's view fades out then the new epoch's
+   first render fades back in. We fade #content as a whole (the router's own
+   .route-view fade is a separate, per-navigation mechanism — they never run at
+   the same time, so there is no conflict). */
+#content.epoch-crossfade {
+  transition: opacity 300ms var(--ease-instrument);
+  opacity: 0;
+}
+
+/* (d/e) Settled state is the absence of these classes: KPI cards return to full
+   opacity, the river track resumes its drift + chips re-enter via their own
+   chip-enter keyframe, content returns to opacity 1. No extra rules needed. */
+
+/* ------------------------------------------------------------------
+   REDUCED MOTION — global, authoritative gate.
+   theme.css already neutralises animation/transition DURATION globally
+   under prefers-reduced-motion. We additionally NEUTRALISE the transform/
+   opacity END STATES of the choreography here so a reduced-motion user gets
+   an INSTANT swap (no slid-out river, no dimmed KPIs, no faded content)
+   rather than a 0.01ms-fast version of the same movement.
+   ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .dialog-backdrop,
+  .dialog {
+    animation: none;
+  }
+  #kpi-strip.epoch-countdown .kpi-card { opacity: 1; }
+  #event-river.epoch-out .river-track { transform: none; opacity: 1; }
+  #content.epoch-crossfade { opacity: 1; }
+}
