@@ -1,0 +1,13 @@
+skeleton.length === 180: true (got 180)
+every lot >=1 lot.start: true (lots=100, starts=100)
+every lot >=1 lot.complete: true (completes=100)
+totals: step.transition=358, material.in_transit(move)=100, lot.complete=100
+every event suppressible:true: true
+every event has lotId: true
+NO spc/defect/alarm/yield events in skeleton: true
+two generateSkeleton runs JSON-identical: true
+tick=0 events: 18 (>=5: true)
+tick=179 events: 7 (>=5: true)
+getLotAtTick(L-042, 90): {"lotId":"L-042","currentStep":"LOGIC-A-S04","currentEquipment":"EQP-042","qTime":13,"status":"running"}
+
+ALL PASS: true
