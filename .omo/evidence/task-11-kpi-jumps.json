@@ -1,0 +1,11 @@
+{
+  "source": "live browser — window.__SIM.state.kpis sampled at two ticks at http://localhost:8000/index.html",
+  "scenario": "KPI strip jumps (T11 DoD + mandatory check #4)",
+  "rootCause": "app.js emitted skeleton lifecycle events + called recomputeKpis() each tick, but no subscriber folded those events back into lot.status, so every lot kept an undefined status (counted as WIP forever) and kpis were frozen at {wip:100,throughput:0,yield:100,mtbf:2400,oee:100}.",
+  "fix": "app.js now subscribes 'lot-lifecycle' on the dispatcher: lot.start/step.transition -> status 'running', material.in_transit -> 'in_process', lot.complete -> 'complete'. recomputeKpis() then sees lots transition and produces moving values.",
+  "snapshotA": {"tick": 69, "kpis": {"wip": 87, "throughput": 325, "yield": 100, "mtbf": 2400, "oee": 87}},
+  "snapshotB": {"tick": 77, "kpis": {"wip": 85, "throughput": 375, "yield": 100, "mtbf": 2400, "oee": 85}},
+  "kpisChanged": ["wip", "throughput", "oee"],
+  "renderedWipCardMatchesState": true,
+  "pass": true
+}

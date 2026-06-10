@@ -51,9 +51,26 @@ function boot() {
   // --- top event river (T12) ----------------------------------------------
   // Subscribes to ALL dispatcher events; chips drift left, priority types pin
   // leftmost. Mounted before the scheduler starts so it captures tick-0 events.
+  // The instance lives via its dispatcher subscription (constructor side effect)
+  // — it is intentionally NOT exposed on window.__SIM (the QA contract is the
+  // exact 8-key surface below; an extra key fails the T9 mandatory check).
+  // eslint-disable-next-line no-unused-vars
   const eventRiver = createEventRiver({
     container: document.getElementById('event-river'),
     dispatcher,
+  });
+
+  // --- lot lifecycle → state.lots status (T11/T9) --------------------------
+  // The skeleton emits MES lifecycle events through the dispatcher; this is the
+  // subscriber that folds them back into authoritative lot.status so the
+  // per-tick state.recomputeKpis() sees lots transition queued→running→complete.
+  // Without this, every lot keeps an undefined status (counted as WIP forever)
+  // and the KPI strip is frozen at {wip:100, throughput:0, yield:100, ...}.
+  dispatcher.subscribeAll('lot-lifecycle', {
+    'lot.start': (p) => state.updateLot(p.lotId, { status: 'running' }),
+    'step.transition': (p) => state.updateLot(p.lotId, { status: 'running' }),
+    'material.in_transit': (p) => state.updateLot(p.lotId, { status: 'in_process' }),
+    'lot.complete': (p) => state.updateLot(p.lotId, { status: 'complete' }),
   });
 
   // --- TickScheduler with epoch-reset hooks wired in T4's order contract ---
