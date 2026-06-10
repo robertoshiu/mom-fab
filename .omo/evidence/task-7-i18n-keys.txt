@@ -1,0 +1,8 @@
+Task 7 — i18n key-set equality QA
+zh-TW key count: 142
+en-US key count: 142
+keys only in zh-TW: (none)
+keys only in en-US: (none)
+symmetric difference size: 0
+RESULT: key sets EXACTLY equal = true
+required keys present (both): true

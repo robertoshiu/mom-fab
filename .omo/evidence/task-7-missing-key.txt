@@ -1,0 +1,20 @@
+Task 7 — i18n loader behavior QA
+default getLocale(): zh-TW  (expect zh-TW)
+t("nav.mes") zh: MES
+t("nav.mes.full") zh: 製造執行系統 / Manufacturing Execution System
+after setLocale(en-US) getLocale(): en-US
+t("nav.mes.full") en: Manufacturing Execution System / 製造執行系統
+onLocaleChange callback fired: true with loc=en-US
+
+7A missing-key:
+t("nonexistent.key") returns: nonexistent.key  (expect nonexistent.key)
+returns key itself x3 consistently: true
+warn count for repeated missing key: 1  (expect 1 — per-key dedup)
+warn message: [i18n] missing key: nonexistent.key
+
+RESULT: PASS
+
+NOTE: index.js imports JSON via standard import attributes `with { type: "json" }`
+(supported in Node 22 + modern browsers). Node emits an ExperimentalWarning for
+JSON module imports; this is benign and does not affect behavior. The QA harness
+above reads index.js directly (which performs the JSON imports) — all assertions pass.
