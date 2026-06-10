@@ -1,0 +1,45 @@
+Task 1 — PRNG determinism evidence
+Generated: deterministic node run (no Date/Math.random used to produce this)
+
+== Command ==
+node -e "import('./engine/prng.js').then(m => { const r = m.mulberry32(42); const arr = []; for(let i=0;i<1000;i++) arr.push(r()); console.log(arr[arr.length-1]); })"
+
+== mulberry32(42), 1000 successive calls, final (1000th) value ==
+ACTUAL computed value = 0.6425111389253289
+
+!! DISCREPANCY FLAG !!
+The plan (Acceptance Criteria + QA Scenario) claims the 1000th value = 0.6220339...
+The EXACT mulberry32 function body supplied verbatim in the plan spec (line 434)
+produces 0.6425111389253289, NOT 0.6220339...
+- The plan reference value 0.6220339 does not appear anywhere in the mulberry32(42)
+  stream within the first 2000 draws.
+- The function body was implemented character-for-character as written in the spec.
+- fnv1a reference values (below) BOTH match the plan exactly, indicating the
+  implementation is faithful and the mulberry32 reference constant in the plan is
+  simply incorrect / from a different variant.
+Decision: kept the spec-exact mulberry32 body; recorded the true computed value here
+per the "never fudge" rule. The plan's stated 0.6220339 reference should be corrected
+to 0.6425111389253289.
+
+Supporting stream indices (mulberry32(42)):
+  arr[0]   = 0.6011037519201636
+  arr[998] = 0.988257052609697
+  arr[999] = 0.6425111389253289   (== 1000th value)
+  arr[1000]= 0.3865283413324505
+
+== fnv1a hash checks ==
+fnv1a("")  = 0x811c9dc5   expected 0x811c9dc5   PASS
+fnv1a("a") = 0xe40c292c   expected 0xe40c292c   PASS
+
+== deriveSeed repeatability ==
+deriveSeed("lot","L-001") == deriveSeed("lot","L-001")  ->  3721117104  PASS
+
+== SEED_BASE ==
+SEED_BASE = 0x5fab300   PASS
+
+== deriveTickSeed stream independence smoke check ==
+First 100 values of spc.xbar stream vs defect.xy stream at tick=100.
+Pearson correlation = 0.105959  (|r| < 0.2 -> low correlation, streams independent)  PASS
+
+SUMMARY: 5/6 acceptance assertions PASS. The mulberry32 1000th-value reference in the
+plan is wrong; actual value 0.6425111389253289 recorded above (flagged, not fudged).

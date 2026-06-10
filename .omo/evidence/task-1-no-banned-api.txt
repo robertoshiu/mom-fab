@@ -1,0 +1,20 @@
+Task 1 — Banned-API scan evidence
+Target: engine/prng.js
+
+Tool note: ast_grep is not installed in this environment; used ripgrep (grep) as the
+local equivalent per the task's "node/grep" QA allowance.
+
+== Command ==
+grep -nE "Math\.random|Date\.now|crypto\.getRandomValues|new Date" engine/prng.js
+
+== Results ==
+Math.random()            -> 0 matches
+Date.now()               -> 0 matches
+crypto.getRandomValues   -> 0 matches
+new Date                 -> 0 matches
+
+Total banned-API occurrences in engine/prng.js: 0
+
+PASS — no banned APIs present.
+Note: Math.imul is used (an integer-multiply intrinsic for the mulberry32 / fnv1a
+hash math) which is NOT a banned API — only Math.random is prohibited.
