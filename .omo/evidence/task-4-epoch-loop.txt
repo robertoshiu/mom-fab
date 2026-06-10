@@ -1,0 +1,50 @@
+Task 4 — Tick scheduler epoch-loop + hook-order + stop() evidence
+Target: engine/tick-scheduler.js
+
+Tool note: The plan's QA scenarios are written for Playwright (page.evaluate +
+window.__SIM). index.html / window.__SIM do not exist until T9, so the Playwright
+scenarios (task-4-tick-advances.png, task-4-epoch-loop.png,
+task-4-visibility-catchup.json screenshots) are DEFERRED to T9. Below are node
+substitutes run with node v22 using real setInterval/setTimeout/performance.now.
+
+== Scenario: Epoch loop (epochLength set to 3 to accelerate) ==
+ticks observed (onTick args): [1, 2, 0]
+onEpochEnd count: 1            -> PASS (fired exactly once per epoch loop)
+currentTick after loop:  0     -> PASS (reset to 0)
+
+== Scenario: stop() really stops (M7 — clearInterval + release callback refs) ==
+currentTick at stop = 2, onTick calls at stop = 2
+after 2.2s more elapsed: onTick calls = 2, currentTick = 2  -> PASS (no further ticks)
+_intervalId === null after stop()                            -> PASS
+_onTick === null && _onEpochEnd === null after stop()        -> PASS (refs released)
+
+== Scenario: Tick advances (real 1s interval) ==
+currentTick starts at 0                                       -> PASS
+epochStartTime is a number (from performance.now())           -> PASS
+currentTick after ~5.5s = 5 (in 4..6 band)                    -> PASS
+
+== Scenario: visibilitychange SKIP-NOT-QUEUE catch-up (M4) ==
+back-dated epochStartTime by 10s, called onVisibilityChange() once
+currentTick jumped to targetTick = 10 (= floor(10000/1000) % 180) -> PASS
+onTick call delta = 1 (EXACTLY one — no burst / no tick avalanche) -> PASS
+
+== Hook-order assertion at epoch boundary (4A spec) ==
+The scheduler OWNS the order; state/choreography are injected callbacks.
+Full observed boundary order:
+  freeze -> epochEnd -> snapshot -> clear -> choreo -> resume
+4A core data order (excluding the epochEnd boundary signal):
+  freeze -> snapshot -> clear -> [RESET currentTick=0 + epochSeed] -> choreo -> resume
+  -> PASS  (matches plan 4A: snapshot BEFORE clear, snapshot BEFORE reset)
+Note: [RESET] (currentTick=0, epochSeed update) executes in code between the
+clear hook and the choreography hook; it is an internal scheduler step, not an
+injected callback, so it does not appear as a named hook in the order array.
+
+== Banned-API scan (grep / ripgrep) ==
+Math.random               -> 0 matches
+Date.now (code-level)     -> 0 matches  (string appears only in line-7 comment)
+new Date (code-level)     -> 0 matches  (string appears only in line-7 comment)
+crypto.getRandomValues    -> 0 matches
+requestAnimationFrame     -> 0 matches  (Must NOT do — tick is NOT rAF-driven)
+performance.now           -> used for epochStartTime (explicitly allowed)
+
+OVERALL: PASS — all node-runnable scenarios pass; Playwright .png scenarios deferred to T9.

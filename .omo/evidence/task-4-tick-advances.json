@@ -1,0 +1,34 @@
+{
+  "task": "T4",
+  "target": "engine/tick-scheduler.js",
+  "generatedBy": "node QA substitute (Playwright/window.__SIM scenarios deferred to T9 — index.html does not exist yet)",
+  "scenarios": {
+    "tickAdvances": {
+      "description": "start() with real 1000ms setInterval; assert currentTick advances 0 -> ~5 in ~5.5s",
+      "currentTickStart": 0,
+      "currentTickAfter5_5s": 5,
+      "onTickCalls": [1, 2, 3, 4, 5],
+      "epochStartTimeIsNumber": true,
+      "pass": true
+    },
+    "visibilityCatchup": {
+      "description": "SKIP-NOT-QUEUE (M4): back-date epochStartTime by 10s, call onVisibilityChange() once; assert single jump to targetTick = floor(10000/1000) % epochLength, NO burst",
+      "epochLength": 180,
+      "targetTick": 10,
+      "onTickCallsDelta": 1,
+      "noAvalanche": true,
+      "pass": true
+    }
+  },
+  "bannedApiScan": {
+    "tool": "grep (ripgrep) — ast_grep not installed; node/grep allowance per task",
+    "MathRandom": 0,
+    "DateNow_codeLevel": 0,
+    "newDate_codeLevel": 0,
+    "cryptoGetRandomValues": 0,
+    "requestAnimationFrame": 0,
+    "note": "performance.now() used for epochStartTime (explicitly allowed). The strings 'Date.now'/'new Date' appear ONLY inside the line-7 comment documenting the prohibition.",
+    "pass": true
+  },
+  "pass": true
+}
