@@ -10,6 +10,7 @@ import { SimulationState } from './engine/state.js';
 import { pregenerate } from './engine/factory.js';
 import { generateSkeleton } from './engine/skeleton.js';
 import { eventRouting } from './scenarios/mom-fab.js';
+import { gateEvent } from './engine/event-gate.js';
 import i18n, { setLocale, applyDom, t, onLocaleChange } from './i18n/index.js';
 import { initNav } from './shell/nav.js';
 import { KpiStrip } from './shell/kpi-strip.js';
@@ -35,7 +36,12 @@ function boot() {
 
   // --- engine assembly ------------------------------------------------------
   const state = new SimulationState();
-  const dispatcher = new Dispatcher();
+  // T29 (C2): the dispatcher gate binds the shared state so a user's MES action
+  // (Hold/Scrap/Complete) suppresses the skeleton's subsequent lifecycle events
+  // for that lot. Non-suppressible events (alarms, SPC/APC jitter, yield.alert,
+  // recipe.changed, …) carry no `suppressible` flag and pass through untouched.
+  // State is bound by closure (declared above), so it is live at emit time.
+  const dispatcher = new Dispatcher((event) => gateEvent(event, state));
 
   // Deterministic domain data + lifecycle skeleton.
   const { lots, equipment, recipes } = pregenerate();
@@ -203,7 +209,15 @@ function boot() {
     if (!slot) return;
     for (const ev of slot.events) {
       if (KNOWN_EVENT_TYPES.has(ev.type)) {
-        dispatcher.emit(ev.type, ev.payload);
+        // T29: forward the skeleton event's gate meta (suppressible/lotId/tick)
+        // so the dispatcher gateFn can suppress events for a Hold/Scrap/Complete
+        // lot. ev.tick is the skeleton's scheduled tick (== the current tick),
+        // which the gate compares against a hold override's expiry.
+        dispatcher.emit(ev.type, ev.payload, {
+          suppressible: ev.suppressible === true,
+          lotId: ev.lotId,
+          tick: ev.tick,
+        });
       }
     }
   }

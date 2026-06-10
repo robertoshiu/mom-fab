@@ -1,0 +1,20 @@
+{
+  "before": {
+    "size": 5,
+    "keys": [
+      "L-001",
+      "L-002",
+      "L-005",
+      "L-011",
+      "L-012"
+    ],
+    "tick": 110,
+    "epochLength": 6
+  },
+  "after": {
+    "size": 0,
+    "keys": [],
+    "tick": 0
+  },
+  "pass": true
+}

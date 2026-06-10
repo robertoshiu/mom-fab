@@ -81,9 +81,17 @@ export class Dispatcher {
     return this._owners.has(owner);
   }
 
-  emit(eventType, payload) {
+  // emit(eventType, payload, meta?)
+  // `meta` (optional) carries gate-relevant fields the gateFn inspects — for a
+  // skeleton lifecycle event app.js passes { suppressible, lotId, tick } so the
+  // T29 event gate can suppress a Hold/Scrap/Complete lot. Non-skeleton emits
+  // omit it: the event then has no `suppressible` flag and the gate passes it
+  // through. The fields are spread onto the event (not nested) so the gate reads
+  // event.suppressible / event.lotId / event.tick directly per its spec.
+  emit(eventType, payload, meta) {
     this._assertType(eventType);
-    const event = { type: eventType, payload };
+    const event = meta ? Object.assign({ type: eventType, payload }, meta)
+      : { type: eventType, payload };
     if (this._gateFn && !this._gateFn(event)) return;
     const set = this._subs.get(eventType);
     if (!set) return;

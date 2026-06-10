@@ -1,0 +1,25 @@
+{
+  "_note": "T29 consolidated acceptance, captured on port 8529. Hold L-001 (until tick+30) and Scrap L-002 (Infinity) set via the MES action contract; instrumented temporary subscriber counters track delivered step.transition/lot.complete per lot across 7 ticks.",
+  "startTick": 37,
+  "nowTick": 44,
+  "elapsedTicks": 7,
+  "hold_L001": {
+    "status": "hold",
+    "overrideStatus": "hold",
+    "holdUntil": 67,
+    "skeletonDelivered": { "step": 0, "complete": 0 }
+  },
+  "scrap_L002": {
+    "status": "scrap",
+    "inWip": false,
+    "skeletonDelivered": { "step": 0, "complete": 0 }
+  },
+  "otherLotsStepDelivered": 11,
+  "nonLotEventsPass": { "alarm": true, "yieldAlert": true },
+  "verdict": {
+    "a_hold_persists": "PASS - L-001 stayed hold 7 ticks, 0 skeleton events overrode it",
+    "b_scrap_suppresses": "PASS - L-002 0 step.transition/lot.complete delivered, excluded from WIP",
+    "e_non_lot_events_pass": "PASS - alarm + yield.alert pass the gate untouched",
+    "gate_selective": "PASS - 11 step.transition delivered to other (un-overridden) lots in the same window"
+  }
+}
