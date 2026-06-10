@@ -1,0 +1,123 @@
+/* ============================================================
+   reports.css — light-theme quality refinements (T25 / 7A)
+
+   SCOPE: every rule here is gated on :root[data-theme="light"].
+   The user toggle (shell/nav.js) is the ONLY source of data-theme;
+   no module or router writes it. These rules give the light theme a
+   report-grade posture — calmer surfaces, denser tables, charts that
+   stay legible on white — WITHOUT touching any module JS. Where a
+   module injects an SVG presentation attribute that vanishes on white
+   (e.g. chart-kit's sigma-band fill-opacity, heatmap floor), we recover
+   it here with a scoped CSS override (CSS wins over the SVG attribute).
+
+   Load order: tokens.css -> theme.css -> reports.css (last, so it can
+   refine the light variable set and component surfaces).
+   ============================================================ */
+
+/* ---- surface calm: report reading wants flatter elevation -------------- */
+:root[data-theme="light"] body {
+  /* a hair of warmth off pure paper-white keeps long reading comfortable */
+  background: var(--bg-primary);
+}
+
+/* Panels read as printed report blocks: lighter shadow, crisp hairline.
+   The signature bezel ticks stay (DESIGN.md §1) but sit calmer on white. */
+:root[data-theme="light"] .panel {
+  box-shadow: var(--sh-sm);
+}
+:root[data-theme="light"] .card {
+  box-shadow: none;
+  border-color: var(--hairline);
+}
+
+/* ---- tables: report density + subtle zebra ----------------------------- */
+/* On white, full --bg-inset zebra (#eef2f7) is slightly heavy for a report;
+   blend it toward paper so rows separate without striping the page. */
+:root[data-theme="light"] .table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg-inset) 55%, var(--bg-elevated));
+}
+:root[data-theme="light"] .table th {
+  /* engraved header gets a faint rule + paper tint so column scanning is
+     calm and print-like */
+  background: color-mix(in srgb, var(--bg-inset) 40%, var(--bg-elevated));
+  border-bottom: 1px solid var(--hairline);
+}
+:root[data-theme="light"] .table td {
+  border-bottom: 1px solid var(--grid);
+}
+:root[data-theme="light"] .table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-elevated));
+}
+
+/* ---- chart-kit: keep instrument cues visible on white ------------------ */
+/* Gridlines: --grid is already lifted to 0.11 in theme.css; pin the stroke
+   explicitly so the chart plot never falls below a readable hairline. */
+:root[data-theme="light"] .chartkit .ck-grid {
+  stroke: var(--grid);
+}
+
+/* Sigma bands are unclassed <rect> appended at fill-opacity ~0.025 (great on
+   the dark phosphor plot, invisible on paper). Recover them: CSS opacity/fill
+   override the JS-set attribute. Only plain rects inside the plot match — the
+   data rects (.ck-bar/.ck-block/.ck-cell/.ck-grow) all carry a class. */
+:root[data-theme="light"] .chartkit svg g > rect:not([class]) {
+  fill: var(--accent);
+  opacity: 0.07;
+}
+
+/* Heatmap floor: the faintest cells (opacity 0.12) wash out on white. Give
+   every cell a hairline boundary so the grid stays readable even at the low
+   end of the value ramp; the JS opacity ramp itself is untouched. */
+:root[data-theme="light"] .chartkit .ck-cell {
+  stroke: var(--hairline);
+  stroke-width: 0.5;
+}
+
+/* Gantt row backing (.ck-grow, opacity 0.4 of --bg-inset) reads as a faint
+   lane on white — fine — but pin it so it doesn't disappear under aggressive
+   monitor calibration. */
+:root[data-theme="light"] .chartkit .ck-grow {
+  fill: var(--bg-inset);
+}
+
+/* Tooltip: on light the dark-theme elevated tooltip can look heavy; keep the
+   elevated surface but tighten the border for a printed-callout feel. */
+:root[data-theme="light"] .chartkit .ck-tooltip {
+  border-color: var(--hairline);
+  box-shadow: var(--sh-md);
+}
+
+/* ---- badges / chips: outlined chips need a faint fill on paper --------- */
+/* Outlined-only chips (border = currentColor) can look fragile on white.
+   A 6% same-hue wash anchors them without becoming a solid pill. */
+:root[data-theme="light"] .badge {
+  background: color-mix(in srgb, currentColor 6%, var(--bg-elevated));
+}
+:root[data-theme="light"] .chip {
+  background: color-mix(in srgb, currentColor 5%, var(--bg-elevated));
+}
+:root[data-theme="light"] .chip.tone-muted {
+  background: var(--bg-inset);
+}
+
+/* ---- status LED: shape edges crisper on light -------------------------- */
+/* The colour+shape encoding (●▲■) carries meaning; on white the soft fills
+   benefit from a hairline ring so the shape silhouette stays sharp. */
+:root[data-theme="light"] .led {
+  box-shadow: 0 0 0 0.5px var(--hairline);
+}
+/* triangle/square use clip-path, so a ring would clip oddly — drop it there
+   and rely on the (now darker) semantic fills for contrast. */
+:root[data-theme="light"] .led-warn,
+:root[data-theme="light"] .led-danger {
+  box-shadow: none;
+}
+
+/* ---- print-like calm: remove monitor-only flourishes ------------------- */
+/* No glow/vignette in light (theme.css already gates body::after to dark);
+   here we also calm the focus ring weight to a report-appropriate hairline
+   pair without losing AA-visible focus. */
+:root[data-theme="light"] .btn:focus-visible,
+:root[data-theme="light"] .chip:focus-visible {
+  outline-color: var(--accent);
+}

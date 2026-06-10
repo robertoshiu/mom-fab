@@ -1,0 +1,180 @@
+{
+  "task": "T25",
+  "generated": "browse getComputedStyle + WCAG2 relative-luminance (alpha-flattened)",
+  "threshold": 4.5,
+  "light": {
+    "theme": "light",
+    "bg": {
+      "primary": "#f8fafc",
+      "elevated": "#ffffff",
+      "inset": "#eef2f7"
+    },
+    "onPrimary": {
+      "--text-primary": {
+        "color": "#1a2332",
+        "ratio": 15.09
+      },
+      "--text-secondary": {
+        "color": "#51647e",
+        "ratio": 5.78
+      },
+      "--accent": {
+        "color": "#0066cc",
+        "ratio": 5.32
+      },
+      "--warn": {
+        "color": "#985700",
+        "ratio": 5.43
+      },
+      "--danger": {
+        "color": "#c81e4a",
+        "ratio": 5.37
+      },
+      "--success": {
+        "color": "#077048",
+        "ratio": 5.87
+      }
+    },
+    "onElevated": {
+      "--text-primary": {
+        "color": "#1a2332",
+        "ratio": 15.78
+      },
+      "--text-secondary": {
+        "color": "#51647e",
+        "ratio": 6.04
+      },
+      "--accent": {
+        "color": "#0066cc",
+        "ratio": 5.57
+      },
+      "--warn": {
+        "color": "#985700",
+        "ratio": 5.68
+      },
+      "--danger": {
+        "color": "#c81e4a",
+        "ratio": 5.61
+      },
+      "--success": {
+        "color": "#077048",
+        "ratio": 6.14
+      }
+    },
+    "onInset": {
+      "--text-primary": {
+        "color": "#1a2332",
+        "ratio": 14.04
+      },
+      "--text-secondary": {
+        "color": "#51647e",
+        "ratio": 5.38
+      },
+      "--accent": {
+        "color": "#0066cc",
+        "ratio": 4.95
+      },
+      "--warn": {
+        "color": "#985700",
+        "ratio": 5.05
+      },
+      "--danger": {
+        "color": "#c81e4a",
+        "ratio": 4.99
+      },
+      "--success": {
+        "color": "#077048",
+        "ratio": 5.46
+      }
+    },
+    "pass": true
+  },
+  "dark": {
+    "theme": "dark",
+    "bg": {
+      "primary": "#0a1428",
+      "elevated": "#142840",
+      "inset": "#081020"
+    },
+    "onPrimary": {
+      "--text-primary": {
+        "color": "#e8f1ff",
+        "ratio": 16.14
+      },
+      "--text-secondary": {
+        "color": "#8fa8c7",
+        "ratio": 7.51
+      },
+      "--accent": {
+        "color": "#00d4ff",
+        "ratio": 10.37
+      },
+      "--warn": {
+        "color": "#ffb547",
+        "ratio": 10.45
+      },
+      "--danger": {
+        "color": "#ff4d6d",
+        "ratio": 5.71
+      },
+      "--success": {
+        "color": "#3ddc97",
+        "ratio": 10.39
+      }
+    },
+    "onElevated": {
+      "--text-primary": {
+        "color": "#e8f1ff",
+        "ratio": 13.12
+      },
+      "--text-secondary": {
+        "color": "#8fa8c7",
+        "ratio": 6.11
+      },
+      "--accent": {
+        "color": "#00d4ff",
+        "ratio": 8.43
+      },
+      "--warn": {
+        "color": "#ffb547",
+        "ratio": 8.49
+      },
+      "--danger": {
+        "color": "#ff4d6d",
+        "ratio": 4.64
+      },
+      "--success": {
+        "color": "#3ddc97",
+        "ratio": 8.44
+      }
+    },
+    "onInset": {
+      "--text-primary": {
+        "color": "#e8f1ff",
+        "ratio": 16.7
+      },
+      "--text-secondary": {
+        "color": "#8fa8c7",
+        "ratio": 7.77
+      },
+      "--accent": {
+        "color": "#00d4ff",
+        "ratio": 10.73
+      },
+      "--warn": {
+        "color": "#ffb547",
+        "ratio": 10.81
+      },
+      "--danger": {
+        "color": "#ff4d6d",
+        "ratio": 5.91
+      },
+      "--success": {
+        "color": "#3ddc97",
+        "ratio": 10.75
+      }
+    },
+    "pass": true
+  },
+  "overallPass": true
+}
