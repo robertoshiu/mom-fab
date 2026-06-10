@@ -1,0 +1,2 @@
+subscribe+emit x3 count=3 -> PASS
+10 subscribers, 1 emit, received=10 -> PASS

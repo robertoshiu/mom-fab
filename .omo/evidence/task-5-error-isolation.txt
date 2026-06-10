@@ -1,0 +1,4 @@
+throwing + healthy subscriber; healthy received=2 -> PASS
+console.warn fired (>=1)=true -> PASS
+gateFn blocks/allows; delivered=1 -> PASS
+unknown event type throws=true -> PASS

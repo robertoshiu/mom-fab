@@ -1,0 +1,2 @@
+Banned-API scan on engine/dispatcher.js:
+PASS: no banned APIs (Math.random / Date.now / new Date / crypto.getRandomValues)
