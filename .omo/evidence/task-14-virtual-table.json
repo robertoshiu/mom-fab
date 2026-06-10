@@ -1,0 +1,13 @@
+{
+  "scenario": "Table virtual scroll — 1000 rows, virtual=true",
+  "totalDataRows": 1000,
+  "virtual": true,
+  "rowHeight": 36,
+  "initialDomTr": 22,
+  "domTrAfterScrollTo18000px": 20,
+  "nonPadRows": 18,
+  "firstVisibleIdAfterScroll": "496",
+  "threshold": 50,
+  "pass": true,
+  "note": "tbody tr count (incl. 2 spacer rows) stays under 50 at top and after deep scroll; window tracks scrollTop."
+}

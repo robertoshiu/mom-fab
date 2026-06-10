@@ -1,0 +1,22 @@
+{
+  "scenario": "chart-kit factory — createLineChart render -> update -> destroy + 2A states",
+  "factories": ["createLineChart", "createBarChart", "createGantt", "createHeatmap"],
+  "returns": "{ render, update, destroy }",
+  "svgRenderedBeforeDestroy": 1,
+  "pointsAfterRender": 50,
+  "pointsAfterPartialUpdate": 30,
+  "midTransitionDestroy_childrenAfter": 0,
+  "childrenAfterDestroy": 0,
+  "svgAfterDestroy": 0,
+  "tooltipAfterDestroy": 0,
+  "chartkitClassAfterDestroy": false,
+  "destroyContract": "selection.interrupt() then .remove() (H4); ResizeObserver disconnected; container empty even when destroyed mid-200ms-transition",
+  "states_2A": {
+    "loading": "skeleton shimmer present (.chartkit-skeleton)",
+    "empty": "overlay + i18n 'states.spc.empty' + deterministic '~ tick 6' (predictedTick)",
+    "partial": "20 pts < partialCapacity 50 => state 'partial', left-anchored (not stretched)",
+    "success": "50 pts full window, sigma bands + UCL/CL/LCL limit labels + hollow points + violation"
+  },
+  "responsive_T33": "ResizeObserver re-render on container width",
+  "pass": true
+}

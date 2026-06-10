@@ -1,0 +1,147 @@
+/* ============================================================
+   components/components.css — styling for T14 shared components.
+   Consumes ONLY tokens.css / theme.css variables (F2: zero raw
+   font-size / spacing / color literals). Classes the JS factories
+   attach that theme.css does not already define.
+   ============================================================ */
+
+/* ---- Dialog: center the surface within the backdrop scrim.
+   (theme.css owns .dialog / .dialog-backdrop visuals; layout lives here.) */
+.dialog-backdrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+.dialog-backdrop .dialog {
+  min-width: 320px;
+  max-width: min(90vw, 560px);
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* ---- Toast ---- */
+.toast-region {
+  position: fixed;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  pointer-events: none;
+  max-width: 360px;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-left: 2px solid var(--accent-dim);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-md);
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-body);
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity var(--transition), transform var(--transition);
+}
+.toast-warn { border-left-color: var(--warn); }
+.toast-danger, .toast-alarm { border-left-color: var(--danger); }
+.toast-success { border-left-color: var(--success); }
+.toast-leaving { opacity: 0; transform: translateX(var(--sp-5)); }
+.toast-msg { color: var(--text-primary); }
+
+/* ---- Sparkline ---- */
+.sparkline { display: block; }
+
+/* ---- virtual Table ---- */
+.vtable {
+  position: relative;
+  width: 100%;
+}
+.vtable-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+.vtable-filter {
+  font: var(--fw-body) var(--fs-body) var(--font-body);
+  color: var(--text-primary);
+  background: var(--bg-inset);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: var(--sp-1) var(--sp-2);
+}
+.vtable-filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.vtable-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--idle) transparent;
+}
+.vtable th[data-sortable] { cursor: pointer; user-select: none; }
+.vtable th[aria-sort] { color: var(--accent); }
+.vtable th .sort-caret { margin-left: var(--sp-1); opacity: 0.7; }
+/* the spacer rows that fake total scroll height in virtual mode */
+.vtable tr.vtable-pad td { padding: 0; border: 0; height: 0; }
+
+/* ---- chart-kit container states ---- */
+.chartkit { position: relative; width: 100%; height: 100%; min-height: 0; }
+.chartkit svg { width: 100%; height: 100%; display: block; }
+.chartkit-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--sp-4);
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+}
+.chartkit-empty-msg { max-width: 22em; line-height: 1.5; }
+.chartkit-predict { color: var(--accent); }
+/* loading skeleton shimmer (not a spinner — DESIGN.md §7 a) */
+.chartkit-skeleton {
+  position: absolute;
+  inset: var(--sp-3);
+  border-radius: var(--r-sharp);
+  background: linear-gradient(
+    100deg,
+    var(--bg-inset) 30%,
+    color-mix(in srgb, var(--accent) 6%, var(--bg-inset)) 50%,
+    var(--bg-inset) 70%
+  );
+  background-size: 200% 100%;
+  animation: chartkit-shimmer calc(var(--tick) * 1.4) ease-in-out infinite;
+}
+@keyframes chartkit-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* chart-kit text (mirrors reference-spc.html craft) */
+.chartkit .axis-t { font: var(--fw-body) var(--chart-axis-fs) var(--font-mono); fill: var(--text-secondary); }
+.chartkit .limit-t { font: var(--fw-emphasis) var(--chart-axis-fs) var(--font-mono); }
+.chartkit .ck-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-md);
+  padding: var(--sp-1) var(--sp-2);
+  font: var(--fw-body) var(--chart-tooltip-fs) var(--font-mono);
+  color: var(--text-primary);
+  opacity: 0;
+  transition: opacity var(--transition);
+  white-space: nowrap;
+  z-index: 5;
+}
+.chartkit .ck-tooltip.show { opacity: 1; }
