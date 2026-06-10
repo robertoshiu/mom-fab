@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAB MOM — SPC Reference</title>
+<!-- ============================================================
+     design/reference-spc.html — 視覺天花板參考實作 (design artifact)
+     T15-T23 實作以此為基準對照。資料為確定性樣本 (mulberry32),
+     非引擎輸出。品牌字樣讀 - -brand-name token (定案後換 token)。
+     ============================================================ -->
+<link rel="stylesheet" href="../styles/tokens.css">
+<link rel="stylesheet" href="../styles/theme.css">
+<style>
+  /* ---- shell layout ---- */
+  #app { display: grid; grid-template-columns: 72px 1fr; height: 100vh; }
+
+  /* ---- nav rail ---- */
+  #rail {
+    display: flex; flex-direction: column; align-items: center;
+    border-right: 1px solid var(--hairline);
+    padding: var(--sp-3) 0; gap: var(--sp-1);
+    background: var(--bg-primary);
+  }
+  #brand-mark {
+    width: 48px; height: 48px; display: grid; place-items: center;
+    color: var(--accent); margin-bottom: var(--sp-3);
+  }
+  .mod {
+    position: relative; width: 56px; height: 50px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    border: 1px solid transparent; border-radius: var(--r-card);
+    color: var(--text-secondary); background: none;
+    font: var(--fw-emphasis) var(--fs-caption) var(--font-mono);
+    letter-spacing: 0.05em; cursor: pointer;
+    transition: color var(--transition), border-color var(--transition);
+  }
+  .mod svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+  .mod:hover { color: var(--text-primary); }
+  .mod:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mod.active {
+    color: var(--accent); border-color: var(--accent-dim);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+  .mod .tip {
+    position: absolute; left: 64px; top: 50%; transform: translateY(-50%) translateX(-4px);
+    white-space: nowrap; padding: var(--sp-1) var(--sp-2);
+    background: var(--bg-elevated); border: 1px solid var(--hairline); border-radius: var(--r-card);
+    box-shadow: var(--sh-md); font: var(--fw-body) var(--fs-caption) var(--font-body);
+    color: var(--text-primary); opacity: 0; pointer-events: none; z-index: 10;
+    transition: opacity var(--transition), transform var(--transition);
+  }
+  .mod:hover .tip, .mod:focus-visible .tip { opacity: 1; transform: translateY(-50%) translateX(0); }
+  #rail .spacer { flex: 1; }
+  .rail-btn {
+    width: 40px; height: 28px; margin-top: var(--sp-1);
+    font: var(--fw-emphasis) var(--fs-caption) var(--font-mono);
+    color: var(--text-secondary); background: none;
+    border: 1px solid var(--hairline); border-radius: var(--r-card); cursor: pointer;
+  }
+  .rail-btn:hover { color: var(--accent); border-color: var(--accent-dim); }
+  .rail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- main column ---- */
+  main { display: grid; grid-template-rows: auto auto 1fr; min-width: 0; overflow: hidden; }
+
+  /* topbar: product name + KPI strip */
+  #topbar {
+    display: grid; grid-template-columns: auto 1fr; align-items: stretch;
+    gap: var(--sp-4); padding: var(--sp-3) var(--sp-4) 0;
+  }
+  #product {
+    display: flex; flex-direction: column; justify-content: center; padding-right: var(--sp-4);
+    border-right: 1px solid var(--hairline);
+  }
+  #product b { font-size: var(--fs-subtitle); font-weight: var(--fw-emphasis); letter-spacing: 0.04em; }
+  #product span { font-size: var(--fs-caption); color: var(--text-secondary); }
+  #kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-2); }
+  .kpi { padding: var(--sp-2) var(--sp-3); display: flex; flex-direction: column; gap: 2px; }
+  .kpi .label { display: flex; justify-content: space-between; align-items: center; }
+  .kpi-value {
+    font-size: var(--fs-kpi); font-weight: var(--fw-kpi); line-height: 1.05;
+    color: var(--text-primary);
+  }
+  .kpi-value .unit { font-size: var(--fs-caption); font-weight: var(--fw-body); color: var(--text-secondary); margin-left: 2px; }
+  .kpi-value.warn { color: var(--warn); }
+  .kpi-delta { font: var(--fw-body) var(--fs-caption) var(--font-mono); color: var(--text-secondary); }
+  .kpi-delta.up { color: var(--success); }
+  .kpi-delta.down { color: var(--danger); }
+
+  /* event river */
+  #river {
+    display: flex; align-items: center; gap: var(--sp-2);
+    margin: var(--sp-3) var(--sp-4) 0; padding: 0 var(--sp-2);
+    height: 38px; overflow: hidden;
+  }
+  .chip {
+    flex: none; display: inline-flex; align-items: center; gap: var(--sp-1);
+    font: var(--fw-body) var(--fs-caption) var(--font-mono);
+    padding: 3px var(--sp-2); border: 1px solid var(--hairline); border-radius: 10px;
+    color: var(--text-secondary); white-space: nowrap;
+  }
+  .chip b { color: var(--text-primary); font-weight: var(--fw-emphasis); }
+  .chip.pri { border-color: var(--danger); color: var(--danger); animation: pri-pulse calc(var(--tick) * 2) ease-in-out infinite; }
+  .chip.pri b { color: var(--danger); }
+  @keyframes pri-pulse { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent); } }
+  #river .more { margin-left: auto; font: var(--fw-emphasis) var(--fs-caption) var(--font-mono); color: var(--text-secondary); }
+
+  /* ---- SPC module ---- */
+  #content {
+    display: grid; min-height: 0;
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: auto minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--sp-3); padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  }
+  #mod-head { grid-column: 1 / 3; display: flex; align-items: baseline; gap: var(--sp-3); }
+  #mod-head h1 { font-size: var(--fs-title); font-weight: var(--fw-emphasis); margin: 0; letter-spacing: 0.01em; }
+  #mod-head .en { color: var(--text-secondary); font-size: var(--fs-subtitle); font-weight: var(--fw-body); }
+  #mod-head .actions { margin-left: auto; display: flex; gap: var(--sp-2); align-items: center; }
+  #tickmeter { font: var(--fw-body) var(--fs-caption) var(--font-mono); color: var(--text-secondary); }
+  #tickmeter b { color: var(--accent); font-weight: var(--fw-kpi); }
+
+  .panel-head {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--hairline);
+  }
+  .panel-head .meta { margin-left: auto; font: var(--fw-body) var(--fs-caption) var(--font-mono); color: var(--text-secondary); }
+  .panel-body { padding: var(--sp-3); min-height: 0; }
+
+  #xbar { display: flex; flex-direction: column; min-height: 0; }
+  #xbar .panel-body { flex: 1; display: flex; }
+  #xbar svg { width: 100%; height: 100%; }
+
+  #side { display: grid; grid-template-rows: auto 1fr; gap: var(--sp-3); min-height: 0; }
+  .rule-row {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: var(--fs-body); padding: 3px 0; color: var(--text-secondary);
+  }
+  .rule-row input { accent-color: var(--accent); }
+  .rule-row.hit { color: var(--danger); }
+  .rule-row .num { margin-left: auto; font-size: var(--fs-caption); }
+
+  #wafer .panel-body { display: grid; place-items: center; }
+
+  #vlog { grid-column: 1 / 3; display: flex; flex-direction: column; min-height: 0; }
+  #vlog .panel-body { padding: 0; overflow-y: auto; }
+
+  /* chart text */
+  .axis-t { font: var(--fw-body) var(--chart-axis-fs) var(--font-mono); fill: var(--text-secondary); }
+  .limit-t { font: var(--fw-emphasis) var(--chart-axis-fs) var(--font-mono); }
+
+  /* live point */
+  .pt-live { animation: live-pulse var(--tick) ease-in-out infinite; }
+  @keyframes live-pulse { 50% { opacity: 0.35; } }
+  .pt-viol { animation: viol-pulse calc(var(--tick) * 1.5) ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes viol-pulse { 50% { transform: scale(1.7); opacity: 0.6; } }
+
+  /* ---- POST boot choreography ---- */
+  .boot-seq { opacity: 0; transform: translateY(6px); animation: boot 600ms var(--ease-instrument) forwards; animation-delay: var(--d, 0ms); }
+  @keyframes boot { to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="rail" aria-label="模組導航">
+    <div id="brand-mark" class="boot-seq" style="--d:0ms" title="FAB MOM">
+      <!-- brand mark placeholder: swap assets/brand-mark.svg after naming -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18"/><circle cx="12" cy="12" r="5"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
+      </svg>
+    </div>
+    <button class="mod boot-seq" style="--d:40ms"><svg viewBox="0 0 16 16"><path d="M2 13V7l4-4 4 4 4-4v10"/></svg>MES<span class="tip">製造執行系統 / Manufacturing Execution</span></button>
+    <button class="mod boot-seq" style="--d:80ms"><svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h8M2 12h10"/></svg>APS<span class="tip">先進規劃排程 / Advanced Planning</span></button>
+    <button class="mod boot-seq" style="--d:120ms"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/><path d="M7 4h5v3M9 12H4V9"/></svg>ERP<span class="tip">企業資源規劃 / Enterprise Resource</span></button>
+    <button class="mod active boot-seq" style="--d:160ms" aria-current="page"><svg viewBox="0 0 16 16"><path d="M1 12l3-3 3 2 4-6 4 3"/></svg>SPC<span class="tip">統計製程管制 / Statistical Process Control</span></button>
+    <button class="mod boot-seq" style="--d:200ms"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>APC<span class="tip">先進製程控制 / Advanced Process Control</span></button>
+    <button class="mod boot-seq" style="--d:240ms"><svg viewBox="0 0 16 16"><path d="M2 12V6l6-3 6 3v6l-6 3z"/></svg>WIP<span class="tip">在製品追蹤 / Work in Progress</span></button>
+    <button class="mod boot-seq" style="--d:280ms"><svg viewBox="0 0 16 16"><path d="M1 11h3l2-7 3 9 2-5h4"/></svg>SCM<span class="tip">供應鏈管理 / Supply Chain</span></button>
+    <button class="mod boot-seq" style="--d:320ms"><svg viewBox="0 0 16 16"><path d="M4 2h8v3H4zM2 8h12v6H2z"/></svg>RCP<span class="tip">配方管理 / Recipe Management</span></button>
+    <button class="mod boot-seq" style="--d:360ms"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.5"/></svg>YLD<span class="tip">良率/缺陷管理 / Yield &amp; Defect</span></button>
+    <div class="spacer"></div>
+    <button class="rail-btn" id="theme-toggle" title="主題切換 / Theme">◐</button>
+    <button class="rail-btn" title="語言 / Language">中A</button>
+    <button class="rail-btn" title="播放 Demo Story" style="color:var(--accent)">▶</button>
+  </nav>
+
+  <main>
+    <header id="topbar">
+      <div id="product" class="boot-seq" style="--d:80ms">
+        <b>FAB MOM</b><span>FAB 300 · Manufacturing Operations</span>
+      </div>
+      <div id="kpis">
+        <div class="kpi panel boot-seq" style="--d:140ms"><span class="label">WIP 在製 <i class="led led-run"></i></span><span class="kpi-value num" data-count="2485">0</span><span class="kpi-delta up">▲ 36 /hr</span></div>
+        <div class="kpi panel boot-seq" style="--d:200ms"><span class="label">Throughput <i class="led led-ok"></i></span><span class="kpi-value num" data-count="612">0<span class="unit">wfr/d</span></span><span class="kpi-delta up">▲ 1.8%</span></div>
+        <div class="kpi panel boot-seq" style="--d:260ms"><span class="label">Yield 良率 <i class="led led-warn"></i></span><span class="kpi-value num warn" data-count="89.2" data-dec="1">0<span class="unit">%</span></span><span class="kpi-delta down">▼ 0.6 pt</span></div>
+        <div class="kpi panel boot-seq" style="--d:320ms"><span class="label">MTBF <i class="led led-ok"></i></span><span class="kpi-value num" data-count="118">0<span class="unit">hr</span></span><span class="kpi-delta">— 0.0</span></div>
+        <div class="kpi panel boot-seq" style="--d:380ms"><span class="label">OEE <i class="led led-ok"></i></span><span class="kpi-value num" data-count="87.4" data-dec="1">0<span class="unit">%</span></span><span class="kpi-delta up">▲ 0.3 pt</span></div>
+        <div class="kpi panel boot-seq" style="--d:440ms"><span class="label">Alarms 警報 <i class="led led-danger"></i></span><span class="kpi-value num" data-count="3">0</span><span class="kpi-delta down">▲ 1 new</span></div>
+      </div>
+    </header>
+
+    <div id="river" class="panel boot-seq" style="--d:520ms" role="log" aria-live="off" aria-label="事件河">
+      <span class="chip pri">▲ <b>SPC 違規</b> chamber pressure · CVD-07</span>
+      <span class="chip pri">■ <b>Alarm</b> RF reflect · ETCH-12</span>
+      <span class="chip">● <b>L-042</b> start · PHOTO</span>
+      <span class="chip">→ <b>L-017</b> step · CMP-03</span>
+      <span class="chip">◆ <b>APC</b> adj −2.3% · CVD-07</span>
+      <span class="chip">● <b>L-008</b> complete · 24 wfr</span>
+      <span class="chip">▢ <b>PO-2207</b> received</span>
+      <span class="more">+9</span>
+    </div>
+
+    <section id="content" aria-label="SPC 統計製程管制">
+      <div id="mod-head" class="boot-seq" style="--d:600ms">
+        <h1>統計製程管制 <span class="en">/ SPC</span></h1>
+        <span class="badge badge-danger">Rule 1 違規 · 1</span>
+        <div class="actions">
+          <span id="tickmeter">tick <b class="num">047</b><span style="opacity:.5">/180</span></span>
+          <button class="btn">Rules ▾</button>
+          <button class="btn btn-ghost">Reset</button>
+        </div>
+      </div>
+
+      <div id="xbar" class="panel boot-seq" style="--d:680ms">
+        <div class="panel-head">
+          <span class="label">X̄ Chart — Chamber Pressure</span>
+          <span class="badge badge-info">CVD-07</span>
+          <span class="meta">n=5 · 最近 50 樣本 · mTorr</span>
+        </div>
+        <div class="panel-body"><svg id="xbar-svg" viewBox="0 0 780 250" preserveAspectRatio="none" aria-label="X-bar 控制圖"></svg></div>
+      </div>
+
+      <div id="side">
+        <div class="panel boot-seq" style="--d:760ms">
+          <div class="panel-head"><span class="label">Western Electric Rules</span></div>
+          <div class="panel-body" id="rules"></div>
+        </div>
+        <div id="wafer" class="panel boot-seq" style="--d:840ms">
+          <div class="panel-head"><span class="label">Wafer Map — L-042 · W08</span><span class="meta">defects 23</span></div>
+          <div class="panel-body"><canvas id="wafer-cv" width="220" height="220" aria-label="晶圓缺陷圖"></canvas></div>
+        </div>
+      </div>
+
+      <div id="vlog" class="panel boot-seq" style="--d:920ms">
+        <div class="panel-head"><span class="label">Violation Log 違規記錄</span><span class="meta">3 active</span></div>
+        <div class="panel-body scroll-y">
+          <table class="table">
+            <thead><tr><th>Tick</th><th>Rule</th><th>參數 Parameter</th><th>Tool</th><th>Lot</th><th>狀態</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="num">047</td><td class="num">WE-1</td><td>Chamber pressure</td><td class="num">CVD-07</td><td class="num">L-042</td><td><i class="led led-danger"></i> Open</td><td><button class="btn btn-ghost">Ack</button> <button class="btn btn-ghost">→ APC</button></td></tr>
+              <tr><td class="num">031</td><td class="num">WE-4</td><td>RF power</td><td class="num">ETCH-12</td><td class="num">L-017</td><td><i class="led led-warn"></i> Review</td><td><button class="btn btn-ghost">Ack</button> <button class="btn btn-ghost">→ APC</button></td></tr>
+              <tr><td class="num">022</td><td class="num">WE-2</td><td>Gas flow</td><td class="num">PVD-03</td><td class="num">L-008</td><td><i class="led led-ok"></i> Closed</td><td><button class="btn btn-ghost" disabled>Ack</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* Reference artifact: deterministic sample data via mulberry32 (project rule —
+   no Math.random anywhere, including design artifacts). */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---- theme toggle: the ONLY writer of data-theme ---- */
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const r = document.documentElement;
+  r.dataset.theme = r.dataset.theme === 'light' ? '' : 'light';
+  drawChart(); drawWafer();
+});
+
+/* ---- KPI count-up: 0.8s, inside one tick ---- */
+const dur = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 800;
+document.querySelectorAll('[data-count]').forEach(el => {
+  const target = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0);
+  const unit = el.querySelector('.unit'); const t0 = performance.now() + 500;
+  (function step(t){ const p = Math.min(Math.max((t - t0) / dur, 0), 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.childNodes[0].nodeValue = (target * e).toFixed(dec);
+    if (p < 1) requestAnimationFrame(step); })(performance.now());
+});
+
+/* ---- Western Electric rules panel ---- */
+const RULES = [['1','1 點超出 3σ',1],['2','9 點同側',0],['3','6 點連續遞增/減',0],['4','14 點交替',1],['5','2/3 點超出 2σ',0],['6','4/5 點超出 1σ',0],['7','15 點於 1σ 內',0],['8','8 點超出 1σ',0]];
+document.getElementById('rules').innerHTML = RULES.map(([n,t,hit]) =>
+  `<label class="rule-row${hit ? ' hit' : ''}"><input type="checkbox" checked>WE-${n} · ${t}<span class="num">${hit ? '1' : '—'}</span></label>`).join('');
+
+/* ---- X-bar chart (the chart-kit visual target) ---- */
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function drawChart(){
+  const svg = document.getElementById('xbar-svg');
+  const W = 780, H = 250, L = 46, R = 50, T = 16, B = 26;
+  const CL = 152, SIG = 14, UCL = CL + 3*SIG, LCL = CL - 3*SIG;
+  const y = v => T + (H-T-B) * (1 - (v - (LCL-10)) / ((UCL+10) - (LCL-10)));
+  const rnd = mulberry32(0x5FAB300); const pts = [];
+  for (let i = 0; i < 50; i++){
+    let v = CL + (rnd()+rnd()+rnd()-1.5) * SIG * 0.9;
+    if (i === 38) v = UCL + SIG * 0.55;               /* the WE-1 violation  */
+    pts.push(v);
+  }
+  const x = i => L + (W-L-R) * i / 49;
+  const grid = [], n = 6;
+  for (let i = 1; i < n; i++){ const gy = T + (H-T-B)*i/n;
+    grid.push(`<line x1="${L}" y1="${gy}" x2="${W-R}" y2="${gy}" stroke="${cssVar('--grid')}" stroke-width="1"/>`); }
+  const limit = (v, label, color, dash) =>
+    `<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="${color}" stroke-width="1" ${dash?'stroke-dasharray="5 4"':''} opacity="0.8"/>
+     <text class="limit-t" x="${W-R+6}" y="${y(v)+3}" fill="${color}">${label}</text>`;
+  const sigma = [1,2].map(k =>
+    `<rect x="${L}" y="${y(CL+k*SIG)}" width="${W-L-R}" height="${y(CL-k*SIG)-y(CL+k*SIG)}" fill="${cssVar('--accent')}" opacity="0.025"/>`).join('');
+  const path = pts.map((v,i) => `${i?'L':'M'}${x(i)},${y(v)}`).join('');
+  const dots = pts.map((v,i) => {
+    if (i === 38) return `<circle class="pt-viol" cx="${x(i)}" cy="${y(v)}" r="4.5" fill="${cssVar('--danger')}"/>
+      <circle cx="${x(i)}" cy="${y(v)}" r="9" fill="none" stroke="${cssVar('--danger')}" opacity="0.5"/>`;
+    const live = i === 49;
+    return `<circle ${live?'class="pt-live"':''} cx="${x(i)}" cy="${y(v)}" r="${live?3.5:2.2}"
+      fill="${live ? cssVar('--accent') : cssVar('--bg-elevated')}" stroke="${cssVar(live?'--accent':'--text-secondary')}" stroke-width="1"/>`;
+  }).join('');
+  const ticks = [0,10,20,30,40,49].map(i =>
+    `<text class="axis-t" x="${x(i)}" y="${H-8}" text-anchor="middle">${String(i).padStart(2,'0')}</text>`).join('');
+  const yticks = [LCL, CL, UCL].map(v =>
+    `<text class="axis-t" x="${L-8}" y="${y(v)+3}" text-anchor="end">${v.toFixed(0)}</text>`).join('');
+  svg.innerHTML = sigma + grid.join('') +
+    limit(UCL,'UCL',cssVar('--danger'),true) + limit(CL,'CL',cssVar('--text-secondary'),false) + limit(LCL,'LCL',cssVar('--danger'),true) +
+    `<path d="${path}" fill="none" stroke="${cssVar('--accent')}" stroke-width="1.4" opacity="0.85"/>` + dots + ticks + yticks;
+}
+
+/* ---- wafer map mini (canvas — the >200pt density rule) ---- */
+function drawWafer(){
+  const cv = document.getElementById('wafer-cv'), c = cv.getContext('2d');
+  const S = 220, Rw = 100, cx = S/2, cy = S/2;
+  c.clearRect(0,0,S,S);
+  c.strokeStyle = cssVar('--hairline'); c.lineWidth = 1;
+  c.beginPath(); c.arc(cx, cy, Rw, 0, 7); c.stroke();
+  c.beginPath(); c.arc(cx, cy, Rw*0.66, 0, 7); c.stroke();
+  c.beginPath(); c.arc(cx, cy, Rw*0.33, 0, 7); c.stroke();
+  c.beginPath(); c.moveTo(cx-Rw,cy); c.lineTo(cx+Rw,cy); c.moveTo(cx,cy-Rw); c.lineTo(cx,cy+Rw); c.stroke();
+  c.beginPath(); c.moveTo(cx-6, cy+Rw-2); c.lineTo(cx+6, cy+Rw-2); c.strokeStyle = cssVar('--accent'); c.stroke(); /* notch */
+  const rnd = mulberry32(0xFAB42);
+  for (let i = 0; i < 23; i++){
+    const clustered = i < 14;
+    const a = clustered ? (rnd()*1.2 + 3.6) : rnd()*6.28;
+    const r = clustered ? (rnd()*0.35 + 0.45)*Rw : rnd()*0.92*Rw;
+    c.fillStyle = clustered ? cssVar('--danger') : cssVar('--warn');
+    c.globalAlpha = 0.85;
+    c.fillRect(cx + Math.cos(a)*r - 1.5, cy + Math.sin(a)*r - 1.5, 3, 3);
+  }
+  c.globalAlpha = 1;
+}
+drawChart(); drawWafer();
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+/* ============================================================
+   theme.css — MOM FAB theme system (T8)
+   Dark = monitoring (default). Light = report reading.
+   Theme has exactly ONE source of truth: the user toggle writes
+   data-theme on <html>. No module may override it (T25 / 7A).
+   ============================================================ */
+
+:root {
+  /* -- Dark: instrument-grade monitoring ------------------------- */
+  --bg-primary: #0a1428;
+  --bg-elevated: #142840;
+  --bg-inset: #081020;          /* wells: chart plots, table zebra   */
+  --text-primary: #e8f1ff;
+  --text-secondary: #8fa8c7;    /* 4.6:1 on bg-primary               */
+  --accent: #00d4ff;
+  --accent-dim: rgba(0, 212, 255, 0.35);
+  --success: #3ddc97;
+  --warn: #ffb547;
+  --danger: #ff4d6d;
+  --idle: #5a6f8a;
+  --grid: rgba(0, 212, 255, 0.08);
+  --hairline: rgba(143, 168, 199, 0.22);
+  --bezel: rgba(0, 212, 255, 0.45);
+}
+
+:root[data-theme="light"] {
+  /* -- Light: report-grade reading (T25 quality spec) ------------- */
+  --bg-primary: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-inset: #eef2f7;
+  --text-primary: #1a2332;
+  --text-secondary: #51647e;
+  --accent: #0066cc;
+  --accent-dim: rgba(0, 102, 204, 0.3);
+  --success: #0e8a5f;
+  --warn: #a65f00;
+  --danger: #c81e4a;
+  --idle: #8294a8;
+  --grid: rgba(0, 0, 0, 0.05);
+  --hairline: rgba(26, 35, 50, 0.14);
+  --bezel: rgba(0, 102, 204, 0.4);
+  --sh-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --sh-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+  --sh-lg: 0 12px 32px rgba(16, 24, 40, 0.12);
+}
+
+/* ============ base ============ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-body);
+  line-height: 1.45;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+/* tabular digits everywhere data lives */
+.num, td.num, .kpi-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ panel: the instrument bezel (signature) ============
+   Calibration corner ticks drawn with two layered gradients per
+   corner. Data panels are sharp-cornered; the ticks read as a
+   measuring frame, not decoration.                                  */
+.panel {
+  position: relative;
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sharp);
+}
+.panel::before,
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--bezel), var(--bezel)) top    left  / var(--bezel-tick-len) var(--bezel-tick-w),
+    linear-gradient(var(--bezel), var(--bezel)) top    left  / var(--bezel-tick-w) var(--bezel-tick-len),
+    linear-gradient(var(--bezel), var(--bezel)) bottom right / var(--bezel-tick-len) var(--bezel-tick-w),
+    linear-gradient(var(--bezel), var(--bezel)) bottom right / var(--bezel-tick-w) var(--bezel-tick-len);
+  background-repeat: no-repeat;
+}
+.panel::after {
+  background:
+    linear-gradient(var(--bezel), var(--bezel)) top    right / var(--bezel-tick-len) var(--bezel-tick-w),
+    linear-gradient(var(--bezel), var(--bezel)) top    right / var(--bezel-tick-w) var(--bezel-tick-len),
+    linear-gradient(var(--bezel), var(--bezel)) bottom left  / var(--bezel-tick-len) var(--bezel-tick-w),
+    linear-gradient(var(--bezel), var(--bezel)) bottom left  / var(--bezel-tick-w) var(--bezel-tick-len);
+  background-repeat: no-repeat;
+}
+
+/* engraved section label */
+.label {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-emphasis);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* ============ controls ============ */
+
+.btn {
+  font: var(--fw-emphasis) var(--fs-body) var(--font-body);
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: var(--sp-1) var(--sp-3);
+  cursor: pointer;
+  transition: transform 150ms ease-out, border-color var(--transition),
+              background-color var(--transition), box-shadow var(--transition);
+}
+.btn:hover { transform: translateY(-1px); border-color: var(--accent-dim); box-shadow: var(--sh-sm); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--bg-primary); }
+.btn-ghost { border-color: transparent; color: var(--text-secondary); }
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-sm);
+}
+
+.badge {
+  display: inline-block;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-emphasis);
+  border-radius: var(--r-card);
+  padding: 1px var(--sp-2);
+  border: 1px solid currentColor;
+}
+.badge-info    { color: var(--accent); }
+.badge-warn    { color: var(--warn); }
+.badge-danger  { color: var(--danger); }
+.badge-success { color: var(--success); }
+
+/* ============ status LED: colour + shape (6A, colour-blind safe) ====
+   ● ok/running   ▲ warning   ■ fault/hold                              */
+.led {
+  display: inline-block;
+  width: var(--led-size);
+  height: var(--led-size);
+  background: var(--idle);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.led-ok      { background: var(--success); }
+.led-warn    { background: var(--warn); border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.led-danger  { background: var(--danger); border-radius: 0; }
+.led-run     { background: var(--accent); }
+
+/* ============ table ============ */
+
+.table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
+.table th {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-emphasis);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-align: left;
+  padding: var(--table-cell-pad);
+  border-bottom: 1px solid var(--hairline);
+}
+.table td {
+  height: var(--table-row-h);
+  padding: var(--table-cell-pad);
+  border-bottom: 1px solid var(--grid);
+}
+.table tbody tr:nth-child(even) { background: var(--bg-inset); }
+.table tbody tr:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+
+.scroll-y { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--idle) transparent; }
+
+/* ============ atmosphere ============
+   Dark theme only: a near-invisible vignette + grain so large dark
+   surfaces don't read flat. Disabled in light theme and print.        */
+:root:not([data-theme="light"]) body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background:
+    radial-gradient(120% 90% at 50% 0%, transparent 60%, rgba(4, 8, 18, 0.55) 100%);
+}
+
+/* ============ motion discipline ============ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
