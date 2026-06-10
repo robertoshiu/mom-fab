@@ -11,6 +11,9 @@ import { pregenerate } from './engine/factory.js';
 import { generateSkeleton } from './engine/skeleton.js';
 import { eventRouting } from './scenarios/mom-fab.js';
 import i18n, { setLocale, applyDom, t } from './i18n/index.js';
+import { initNav } from './shell/nav.js';
+import { KpiStrip } from './shell/kpi-strip.js';
+import { createEventRiver } from './shell/event-river.js';
 
 const KNOWN_EVENT_TYPES = new Set(Object.keys(eventRouting));
 
@@ -24,6 +27,11 @@ function boot() {
   setLocale('zh-TW');
   applyDom();
 
+  // --- left module navigation (T10) ---------------------------------------
+  // Builds the 9-button rail + theme/locale/demo controls; the router (T13)
+  // listens for the module:change CustomEvent it dispatches.
+  initNav();
+
   // --- engine assembly ------------------------------------------------------
   const state = new SimulationState();
   const dispatcher = new Dispatcher();
@@ -32,6 +40,21 @@ function boot() {
   const { lots, equipment, recipes } = pregenerate();
   state.load({ lots, equipment, recipes });
   const skeleton = generateSkeleton(lots, equipment, recipes);
+
+  // --- top KPI strip (T11) -------------------------------------------------
+  // Six KPI cards read state.kpis / state.alarms each tick; count-up is render
+  // only (10A). Built after state.load so the first paint has real values.
+  state.recomputeKpis();
+  const kpiStrip = new KpiStrip(document.getElementById('kpi-strip'), { state });
+  kpiStrip.init();
+
+  // --- top event river (T12) ----------------------------------------------
+  // Subscribes to ALL dispatcher events; chips drift left, priority types pin
+  // leftmost. Mounted before the scheduler starts so it captures tick-0 events.
+  const eventRiver = createEventRiver({
+    container: document.getElementById('event-river'),
+    dispatcher,
+  });
 
   // --- TickScheduler with epoch-reset hooks wired in T4's order contract ---
   // The scheduler OWNS the order (snapshot → clear → reset → choreo → resume);
@@ -58,6 +81,7 @@ function boot() {
   function onTick(tick) {
     emitSkeletonTick(tick);   // skeleton events → dispatcher.emit
     state.recomputeKpis();    // derive KPIs once per tick (state-first)
+    kpiStrip.update(tick);    // T11: full reconcile after state mutation (2B)
   }
 
   scheduler.start(onTick, () => {});
@@ -71,6 +95,7 @@ function boot() {
     router: null,          // TODO(T13): SPA router registers here
     state,
     dispatcher,
+    eventRiver,            // T12: top event river (subscribes to all events)
     d3: null,              // TODO(T28): d3-loader registers the D3 barrel here
     playHeroStory: null,   // TODO(T30): hero story choreography registers here
     stopHeroStory: null,   // TODO(T30): hero story stop registers here
