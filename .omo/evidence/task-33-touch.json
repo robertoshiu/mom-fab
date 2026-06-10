@@ -1,0 +1,27 @@
+{
+  "task": "T33 responsive monitoring-first — touch-target audit (>=44px below 1366)",
+  "criterion": "All interactive targets below the 1366px desktop breakpoint measure >= 44px (getBoundingClientRect).",
+  "bands": [
+    {
+      "viewport": "390x844",
+      "posture": "monitoring (<768)",
+      "samples": [
+        { "label": "nav module button (.mod)", "w": 44, "h": 44, "pass": true },
+        { "label": "nav rail control (.rail-btn)", "w": 44, "h": 44, "pass": true },
+        { "label": "event-river chip (.chip)", "w": 334, "h": 44, "pass": true }
+      ],
+      "all_nav_targets_pass": true,
+      "all_river_chips_pass": true
+    },
+    {
+      "viewport": "1365x768",
+      "posture": "tablet single-column (768-1365)",
+      "samples": [
+        { "label": "MES action button (.mes-actions .btn)", "w": 94, "h": 44, "pass": true },
+        { "label": "nav module button (.mod)", "w": 56, "h": 50, "pass": true }
+      ],
+      "all_content_btns_pass": true
+    }
+  ],
+  "result": "PASS — every sampled interactive target is >= 44px on both sub-1366 bands."
+}

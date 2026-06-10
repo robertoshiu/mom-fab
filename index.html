@@ -24,6 +24,9 @@
   <!-- light-theme report-grade refinements (T25); gated on [data-theme="light"],
        loaded last so it refines the light variable set + component surfaces. -->
   <link rel="stylesheet" href="styles/reports.css" />
+  <!-- monitoring-first responsive layout (T33); loaded last so its 3
+       breakpoints refine the shell <style> + module-injected sheets. -->
+  <link rel="stylesheet" href="styles/responsive.css" />
 
   <style>
     /* ---- shell layout (instrument frame) ---- */

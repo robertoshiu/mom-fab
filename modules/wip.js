@@ -486,6 +486,7 @@ const wip = {
     // --- top: gantt panel --------------------------------------------------
     const gPanel = doc.createElement('div');
     gPanel.className = 'wip-panel panel';
+    gPanel.dataset.mobile = 'hide'; // T33 <768: gantt hidden (rep = sparklines)
     const gHead = doc.createElement('div');
     gHead.className = 'panel-head';
     this._ganttLabel = doc.createElement('span');
@@ -521,6 +522,7 @@ const wip = {
     // flow panel
     const fPanel = doc.createElement('div');
     fPanel.className = 'wip-panel panel';
+    fPanel.dataset.mobile = 'hide'; // T33 <768: flow hidden (rep = sparklines)
     const fHead = doc.createElement('div');
     fHead.className = 'panel-head';
     this._flowLabel = doc.createElement('span');
@@ -544,6 +546,7 @@ const wip = {
     // queue sparkline panel
     const qPanel = doc.createElement('div');
     qPanel.className = 'wip-panel panel';
+    qPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: WIP sparklines
     const qHead = doc.createElement('div');
     qHead.className = 'panel-head';
     this._queueLabel = doc.createElement('span');

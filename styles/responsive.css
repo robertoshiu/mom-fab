@@ -1,0 +1,319 @@
+/* ============================================================
+   responsive.css — MOM FAB monitoring-first responsive layout (T33)
+   Three breakpoints (DESIGN.md §6 / plan T33):
+     >=1366  desktop, full interaction (current layout, untouched here).
+             1366-1919 degraded: KPI 6->4 + "+2" popover (driven in
+             shell/kpi-strip.js); river chip count is already container-
+             driven; gantt axis compression is ResizeObserver-driven in
+             components/chart-kit.js.
+     768-1365  single column: each module's upper/lower halves stack
+               vertically; the nav rail stays; all interactions preserved.
+     <768    monitoring posture: KPI 2x3 grid; river vertical list;
+             each module shows ONE representative full-width panel
+             ([data-mobile="rep"]); operation buttons replaced by an
+             i18n common.desktop_only notice; nav rail becomes a bottom
+             icon bar; ALL interactive targets >=44px.
+
+   Loaded last so it refines the shell <style> + module-injected sheets.
+   Styling is token-only (1px hairlines exempt per project rule).
+   ============================================================ */
+
+/* ====================================================================
+   (A) >=1366 — desktop. KPI degraded mode (6->4 + "+2" popover) is wired
+   in shell/kpi-strip.js; below the desktop breakpoint the popover button
+   is suppressed (all six cards show as a 2x3 grid). The popover surface
+   itself is styled here so it shares the strip's token vocabulary.
+   ==================================================================== */
+
+/* "+2" overflow trigger + popover (1366-1919 and 768-1365 ranges). The
+   strip JS toggles [data-kpi-overflow] on #kpi-strip and shows/hides the
+   trigger; cards 5-6 live inside the popover panel. The wrap is the
+   positioning context so the popover anchors to the trigger. */
+#kpi-strip .kpi-more-wrap {
+  position: relative;
+  flex: none;
+  display: none; /* shown only in degraded mode via [data-kpi-overflow] */
+  align-items: stretch;
+}
+#kpi-strip[data-kpi-overflow="1"] .kpi-more-wrap { display: inline-flex; }
+#kpi-strip .kpi-more {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sp-7);
+  padding: 0 var(--sp-2);
+  font: var(--fw-emphasis) var(--fs-body) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+#kpi-strip .kpi-more:hover { color: var(--accent); border-color: var(--accent-dim); }
+#kpi-strip .kpi-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#kpi-strip .kpi-popover {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  z-index: 50;
+  display: none;
+  grid-template-columns: repeat(2, minmax(calc(var(--sp-7) * 3), 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-dialog);
+  box-shadow: var(--sh-lg);
+}
+#kpi-strip .kpi-more[aria-expanded="true"] + .kpi-popover { display: grid; }
+
+/* In degraded mode, cards flagged .kpi-overflow-card are pulled out of the
+   inline strip flow and live inside the popover instead. */
+#kpi-strip[data-kpi-overflow="1"] .kpi-card.kpi-overflow-card { display: none; }
+#kpi-strip .kpi-popover .kpi-card.kpi-overflow-card { display: flex; }
+
+/* ====================================================================
+   (B) 768-1365 — single column. Module upper/lower halves stack
+   vertically. The grid-row module roots (mes/aps/spc/apc/wip/recipe/
+   yield/scm) collapse to a single auto-flow column. The nav rail stays.
+   ==================================================================== */
+@media (max-width: 1365px) {
+  /* Every module root that was a fixed two/three-row grid becomes a single
+     vertical auto column so the upper/lower halves stack without clipping.
+     Heights go intrinsic so #content scrolls instead of squashing panels. */
+  #content .mes-root,
+  #content .wip-root,
+  #content .recipe-root,
+  #content .apc-root,
+  #content .aps-view,
+  #content #spc-root,
+  #content #scm-root,
+  #content .yield-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: none !important;
+    grid-auto-rows: minmax(min-content, max-content) !important;
+    grid-auto-flow: row !important;
+    height: auto !important;
+    min-height: 100%;
+  }
+
+  /* SPC is a 2-col grid on desktop (charts | rules) with a spanning vlog;
+     flatten to one column so charts, rules and the log stack in order. */
+  #content #spc-root > * { grid-column: 1 / -1 !important; }
+  #content #spc-charts { grid-template-rows: none !important; grid-auto-rows: minmax(220px, auto); }
+
+  /* Yield is a 2-col grid (charts | 360px wafer) on desktop; flatten so the
+     pareto, wafer and trend stack in one column. */
+  #content .yield-grid > * { grid-column: 1 / -1 !important; }
+
+  /* Inner two-column wrappers inside module roots also flatten to one column. */
+  #content .erp-grid { grid-template-columns: 1fr !important; }
+  #content .wip-bottom { flex-direction: column !important; }
+
+  /* Give stacked data panels a workable intrinsic height (charts need a
+     measurable box; ResizeObserver in chart-kit re-renders to fit). */
+  #content .panel { min-height: 200px; }
+
+  /* #content already scrolls (overflow:auto in the shell); ensure roots
+     don't force their children to 0-height in a flex parent. */
+  #content { overflow: auto; }
+}
+
+/* ====================================================================
+   (C) <768 — monitoring posture.
+   ==================================================================== */
+@media (max-width: 767px) {
+  /* --- shell frame: nav rail -> bottom icon bar (no hamburger) ------- */
+  #app {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr auto !important;
+  }
+  #nav-left {
+    grid-row: 2 !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-around;
+    gap: var(--sp-1) !important;
+    padding: var(--sp-1) var(--sp-2) !important;
+    border-right: none !important;
+    border-top: 1px solid var(--hairline);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #main { grid-row: 1 !important; }
+
+  /* brand-mark is desktop chrome — drop it from the bottom bar to keep the
+     9 module targets + controls reachable. */
+  #nav-left #brand-mark { display: none !important; }
+  #nav-left .mod-spacer { display: none !important; }
+
+  /* every rail target >=44px (touch). */
+  #nav-left .mod {
+    width: auto !important;
+    min-width: 44px;
+    height: 44px !important;
+    flex: 1 0 44px;
+  }
+  #nav-left .rail-btn {
+    width: 44px !important;
+    height: 44px !important;
+    margin-top: 0 !important;
+    flex: 0 0 44px;
+  }
+  /* tooltips would overflow the bottom bar — suppress; aria-label remains. */
+  #nav-left .mod .tip,
+  #nav-left .rail-btn .tip { display: none !important; }
+
+  /* --- topbar: KPI strip on top, river as a vertical list below ----- */
+  #topbar {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto !important;
+    row-gap: var(--sp-2) !important;
+    padding: var(--sp-2) var(--sp-3) !important;
+  }
+  #product-name { grid-row: 1 !important; grid-column: 1 !important; }
+  #kpi-strip { grid-row: 2 !important; grid-column: 1 !important; }
+  #event-river { grid-row: 3 !important; grid-column: 1 !important; }
+
+  /* KPI 2x3 grid (six cards, two columns). The popover trigger is hidden
+     below desktop — all cards show inline in the grid. */
+  #kpi-strip {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: auto !important;
+    gap: var(--sp-2) !important;
+  }
+  #kpi-strip .kpi-more-wrap { display: none !important; }
+  #kpi-strip .kpi-popover { display: none !important; position: static; }
+  /* overflow cards rejoin the inline grid at this size. */
+  #kpi-strip[data-kpi-overflow="1"] .kpi-card.kpi-overflow-card { display: flex !important; }
+  #kpi-strip .kpi-card { min-height: 64px; }
+  /* the KPI value can shrink a step so a 2-up card never overflows. */
+  #kpi-strip .kpi-value { font-size: var(--fs-title); }
+
+  /* event river: vertical list, latest on top, max ~8 rows, no drift. */
+  #event-river {
+    height: auto !important;
+    max-height: 40vh;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  #event-river .river-track {
+    flex-direction: column-reverse !important; /* newest chip rendered last -> on top */
+    align-items: stretch !important;
+    width: 100%;
+    animation: none !important; /* no horizontal drift in list mode */
+    overflow: visible !important;
+  }
+  #event-river .chip {
+    width: 100%;
+    min-height: 44px; /* touch target */
+    justify-content: flex-start;
+    border-radius: var(--r-card);
+  }
+  #event-river .river-more {
+    margin-left: 0 !important;
+    padding: var(--sp-1) 0;
+    align-self: flex-start;
+  }
+
+  /* --- content padding tightens for the narrow column --------------- */
+  #content { padding: var(--sp-3) !important; }
+
+  /* --- module roots: single column, intrinsic height ---------------- */
+  #content .mes-root,
+  #content .wip-root,
+  #content .recipe-root,
+  #content .apc-root,
+  #content .aps-view,
+  #content #spc-root,
+  #content #scm-root,
+  #content .yield-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--sp-3) !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* representative-view rule: show ONE flagged panel full-width; hide the
+     rest of the data panels. Heads/toolbars are handled separately below. */
+  #content [data-mobile="hide"] { display: none !important; }
+  #content [data-mobile="rep"] {
+    display: flex !important;
+    flex-direction: column;
+    width: 100% !important;
+    min-height: 60vh;
+  }
+  /* SPC's grid children: only the flagged X-bar panel survives. */
+  #content #spc-charts { display: contents !important; }
+
+  /* operation buttons -> i18n desktop-only notice. The module action
+     toolbars are flagged; their <button>s are hidden and the appended
+     .mobile-desktop-only notice (data-i18n="common.desktop_only") shows. */
+  #content .mobile-actions .btn,
+  #content .mobile-actions button,
+  #content .mobile-actions .apc-seg-btn { display: none !important; }
+  #content .mobile-desktop-only { display: none; }
+  #content .mobile-actions .mobile-desktop-only,
+  #content .mobile-desktop-only.mobile-actions { display: inline-flex !important; }
+  #content .mobile-desktop-only {
+    align-items: center;
+    gap: var(--sp-1);
+    min-height: 44px;
+    padding: var(--sp-1) var(--sp-3);
+    font: var(--fw-emphasis) var(--fs-caption) var(--font-mono);
+    letter-spacing: var(--label-tracking);
+    color: var(--text-secondary);
+    border: 1px dashed var(--hairline);
+    border-radius: var(--r-card);
+  }
+
+  /* --- gantt -> list view: the gantt host scrolls as a vertical list.
+     chart-kit renders rows top-to-bottom already; we just let the host
+     scroll and cap its height so it reads as a list, not a wide canvas. */
+  #content .mes-gantt,
+  #content .aps-gantt-body,
+  #content .wip-gantt-body {
+    overflow-y: auto !important;
+    max-height: 50vh;
+  }
+
+  /* --- touch targets: every interactive element >=44px below 1366 ---- */
+  #content .btn,
+  #content button:not(.chip),
+  #content input[type="checkbox"],
+  #content a[role="button"] {
+    min-height: 44px;
+  }
+  #content .btn { padding: var(--sp-2) var(--sp-3); }
+  /* checkbox rows (SPC rules) — enlarge the hit area via the label row. */
+  #content .rule-row { min-height: 44px; align-items: center; }
+
+  /* tables stay usable: allow horizontal scroll inside the panel rather
+     than forcing the document to overflow. */
+  #content .vtable,
+  #content .scroll-y,
+  #content .panel-body { overflow-x: auto; }
+}
+
+/* ====================================================================
+   (D) Touch-target floor for the 768-1365 band too (plan: ALL interactive
+   targets >=44px BELOW 1366). Kept separate so it applies across both the
+   tablet single-column band and the <768 monitoring band.
+   ==================================================================== */
+@media (max-width: 1365px) {
+  #content .btn,
+  #content button:not(.chip):not(.kpi-more),
+  #content a[role="button"] {
+    min-height: 44px;
+  }
+  #content .btn { padding: var(--sp-2) var(--sp-3); }
+  #content .rule-row { min-height: 44px; }
+  /* nav rail targets (rail stays at this band) also reach 44px. */
+  #nav-left .mod { height: 50px; }
+}

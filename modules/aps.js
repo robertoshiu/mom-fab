@@ -237,7 +237,7 @@ const aps = {
     head.appendChild(h1);
 
     const actions = doc.createElement('div');
-    actions.className = 'actions';
+    actions.className = 'actions mobile-actions'; // T33: collapse to notice <768
     this._tickMeter = doc.createElement('span');
     this._tickMeter.className = 'aps-tickmeter';
     actions.appendChild(this._tickMeter);
@@ -260,12 +260,19 @@ const aps = {
     this._btnLock.addEventListener('click', () => this._onLock());
     actions.appendChild(this._btnLock);
 
+    // T33 <768 desktop-only notice (shown by responsive.css when buttons hide).
+    const apsDtOnly = doc.createElement('span');
+    apsDtOnly.className = 'mobile-desktop-only';
+    apsDtOnly.setAttribute('data-i18n', 'common.desktop_only');
+    apsDtOnly.textContent = t('common.desktop_only');
+    actions.appendChild(apsDtOnly);
     head.appendChild(actions);
     view.appendChild(head);
 
     // --- gantt panel (上半) -------------------------------------------------
     const gPanel = doc.createElement('div');
     gPanel.className = 'aps-panel panel';
+    gPanel.dataset.mobile = 'hide'; // T33 <768: gantt hidden (rep = heatmap)
     const gHead = doc.createElement('div');
     gHead.className = 'panel-head';
     this._gLabel = doc.createElement('span');
@@ -287,6 +294,7 @@ const aps = {
     // --- heatmap panel (下半) ----------------------------------------------
     const hPanel = doc.createElement('div');
     hPanel.className = 'aps-panel panel';
+    hPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: APS heatmap
     const hHead = doc.createElement('div');
     hHead.className = 'panel-head';
     this._hLabel = doc.createElement('span');

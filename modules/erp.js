@@ -140,7 +140,7 @@ const erp = {
     head.appendChild(h1);
 
     const actions = document.createElement('div');
-    actions.className = 'erp-actions';
+    actions.className = 'erp-actions mobile-actions'; // T33: collapse to notice <768
     const createBtn = Button({
       i18nKey: 'erp.action.create',
       variant: 'primary',
@@ -148,6 +148,12 @@ const erp = {
     });
     createBtn.setAttribute('data-role', 'create-po');
     actions.appendChild(createBtn);
+    // T33 <768 desktop-only notice (shown by responsive.css when buttons hide).
+    const erpDtOnly = document.createElement('span');
+    erpDtOnly.className = 'mobile-desktop-only';
+    erpDtOnly.setAttribute('data-i18n', 'common.desktop_only');
+    erpDtOnly.textContent = ctx.t('common.desktop_only');
+    actions.appendChild(erpDtOnly);
     head.appendChild(actions);
     root.appendChild(head);
 
@@ -159,6 +165,7 @@ const erp = {
     // BOM panel
     const bomPanel = document.createElement('div');
     bomPanel.className = 'panel erp-bom';
+    bomPanel.dataset.mobile = 'hide'; // T33 <768: BOM tree hidden (rep = kanban)
     const bomHead = document.createElement('div');
     bomHead.className = 'panel-head';
     const bomLabel = document.createElement('span');
@@ -181,6 +188,7 @@ const erp = {
     // Kanban panel
     const kbPanel = document.createElement('div');
     kbPanel.className = 'panel erp-kanban';
+    kbPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: ERP kanban
     const kbHead = document.createElement('div');
     kbHead.className = 'panel-head';
     const kbLabel = document.createElement('span');

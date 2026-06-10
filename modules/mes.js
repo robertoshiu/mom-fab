@@ -176,6 +176,7 @@ const mes = {
     // === TOP PANEL: Lot tracking table ===
     const topPanel = doc.createElement('div');
     topPanel.className = 'panel mes-panel';
+    topPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: MES table
 
     const head = doc.createElement('div');
     head.className = 'mes-panel-head';
@@ -186,8 +187,10 @@ const mes = {
     head.appendChild(headLabel);
 
     // action toolbar (Start/Hold/Release/Complete/Rework/Scrap)
+    // T33: flagged .mobile-actions so the operation buttons collapse to a
+    // common.desktop_only notice below 768px (no fake interactivity).
     const actions = doc.createElement('div');
-    actions.className = 'mes-actions';
+    actions.className = 'mes-actions mobile-actions';
     this._buttons = {};
     const ACTIONS = [
       ['start', 'mes.action.start', 'default'],
@@ -207,6 +210,12 @@ const mes = {
       this._buttons[action] = btn;
       actions.appendChild(btn);
     }
+    // T33 <768 desktop-only notice (shown by responsive.css when buttons hide).
+    const dtOnly = doc.createElement('span');
+    dtOnly.className = 'mobile-desktop-only';
+    dtOnly.setAttribute('data-i18n', 'common.desktop_only');
+    dtOnly.textContent = t('common.desktop_only');
+    actions.appendChild(dtOnly);
     head.appendChild(actions);
 
     const meta = doc.createElement('span');
@@ -226,6 +235,7 @@ const mes = {
     // === BOTTOM PANEL: selected lot lifecycle Gantt ===
     const botPanel = doc.createElement('div');
     botPanel.className = 'panel mes-panel';
+    botPanel.dataset.mobile = 'hide'; // T33 <768: not the representative panel
 
     const botHead = doc.createElement('div');
     botHead.className = 'mes-panel-head';

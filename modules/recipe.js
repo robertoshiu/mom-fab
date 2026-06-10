@@ -353,7 +353,7 @@ const recipeModule = {
     this._badge = badge;
 
     const actions = doc.createElement('div');
-    actions.className = 'actions';
+    actions.className = 'actions mobile-actions'; // T33: collapse to notice <768
     this._btnNew = Button({
       i18nKey: 'recipe.action.new_version',
       variant: 'default',
@@ -370,11 +370,18 @@ const recipeModule = {
       onClick: () => this._onSignOffOpen(ctx),
     });
     actions.append(this._btnNew, this._btnCompare, this._btnSignoff);
+    // T33 <768 desktop-only notice (shown by responsive.css when buttons hide).
+    const recipeDtOnly = doc.createElement('span');
+    recipeDtOnly.className = 'mobile-desktop-only';
+    recipeDtOnly.setAttribute('data-i18n', 'common.desktop_only');
+    recipeDtOnly.textContent = ctx.t('common.desktop_only');
+    actions.appendChild(recipeDtOnly);
     head.append(h1, badge, actions);
 
     // --- parameter table panel (top) ---------------------------------------
     const paramPanel = doc.createElement('div');
     paramPanel.className = 'recipe-panel panel';
+    paramPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: Recipe table
     const paramHead = doc.createElement('div');
     paramHead.className = 'panel-head';
     const paramLabel = doc.createElement('span');
@@ -392,6 +399,7 @@ const recipeModule = {
     // --- version diff panel (bottom) ---------------------------------------
     const diffPanel = doc.createElement('div');
     diffPanel.className = 'recipe-panel panel';
+    diffPanel.dataset.mobile = 'hide'; // T33 <768: version diff hidden (rep = table)
     const diffHead = doc.createElement('div');
     diffHead.className = 'panel-head';
     const diffLabel = doc.createElement('span');

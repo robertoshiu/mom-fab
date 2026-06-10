@@ -26,6 +26,12 @@ import { t, onLocaleChange } from '../i18n/index.js';
 // --- layout constants (container-relative chip budget) ----------------------
 const CHIP_SLOT = 160; // px per chip slot — T33 "floor(width/160)"
 const CHIP_MIN = 6;    // never show fewer than 6 chips
+// T33 monitoring posture (<768): the river is a vertical list (newest on top),
+// so the horizontal floor(width/160) budget no longer applies — show up to a
+// fixed ~8 most-recent rows instead. responsive.css owns the vertical layout;
+// this only swaps the capacity computation.
+const MOBILE_BP = '(max-width: 767px)';
+const MOBILE_CAP = 8;
 
 // --- event-type → semantic posture -----------------------------------------
 // Priority types are pinned leftmost with danger styling + pulse. Colours map
@@ -292,8 +298,16 @@ export class EventRiver {
   }
 
   _recomputeCapacity() {
-    const w = (this.container && this.container.clientWidth) || 0;
-    const next = Math.max(CHIP_MIN, Math.floor(w / CHIP_SLOT) || 0);
+    // T33: in the <768 monitoring posture the river is a vertical list, so the
+    // horizontal floor(width/160) budget is replaced by a fixed ~8-row cap.
+    const mobile = typeof matchMedia === 'function' && matchMedia(MOBILE_BP).matches;
+    let next;
+    if (mobile) {
+      next = MOBILE_CAP;
+    } else {
+      const w = (this.container && this.container.clientWidth) || 0;
+      next = Math.max(CHIP_MIN, Math.floor(w / CHIP_SLOT) || 0);
+    }
     if (next !== this._capacity) {
       this._capacity = next;
       this._render();

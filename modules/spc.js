@@ -374,6 +374,7 @@ const spc = {
 
     // Reset (clears the window) + Print preview (locked/disabled per plan)
     const actions = head.querySelector('.actions');
+    actions.classList.add('mobile-actions'); // T33: collapse to notice <768
     const resetBtn = doc.createElement('button');
     resetBtn.type = 'button';
     resetBtn.className = 'btn btn-ghost';
@@ -396,6 +397,13 @@ const spc = {
     printBtn.title = t('common.desktop_only');
     actions.appendChild(printBtn);
 
+    // T33 <768 desktop-only notice (shown by responsive.css when buttons hide).
+    const spcDtOnly = doc.createElement('span');
+    spcDtOnly.className = 'mobile-desktop-only';
+    spcDtOnly.setAttribute('data-i18n', 'common.desktop_only');
+    spcDtOnly.textContent = t('common.desktop_only');
+    actions.appendChild(spcDtOnly);
+
     // --- left column: X-bar (top) + R chart (bottom) ----------------------
     const charts = doc.createElement('div');
     charts.id = 'spc-charts';
@@ -404,6 +412,7 @@ const spc = {
     const xbarPanel = doc.createElement('div');
     xbarPanel.id = 'spc-xbar';
     xbarPanel.className = 'panel';
+    xbarPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: SPC X-bar
     xbarPanel.innerHTML =
       `<div class="panel-head"><span class="label">${t('spc.xbar_chart')} — Chamber Pressure</span>` +
       `<span class="badge badge-info">${SPC_TOOL}</span>` +
@@ -415,6 +424,7 @@ const spc = {
     const rPanel = doc.createElement('div');
     rPanel.id = 'spc-r';
     rPanel.className = 'panel';
+    rPanel.dataset.mobile = 'hide'; // T33 <768: R chart hidden (rep = X-bar)
     rPanel.innerHTML =
       `<div class="panel-head"><span class="label">${t('spc.r_chart')} — Range</span>` +
       `<span class="meta">n=${SUBGROUP_N} · R̄=${RBAR.toFixed(1)}</span></div>` +
@@ -443,6 +453,7 @@ const spc = {
     const side = doc.createElement('div');
     side.id = 'spc-rules';
     side.className = 'panel';
+    side.dataset.mobile = 'hide'; // T33 <768: WE-rules panel hidden
     side.innerHTML =
       `<div class="panel-head"><span class="label" data-i18n="spc.we_rules">${t('spc.we_rules')}</span></div>` +
       `<div class="panel-body"></div>`;
@@ -481,6 +492,7 @@ const spc = {
     const vlog = doc.createElement('div');
     vlog.id = 'spc-vlog';
     vlog.className = 'panel';
+    vlog.dataset.mobile = 'hide'; // T33 <768: violation log hidden (rep = X-bar)
     vlog.innerHTML =
       `<div class="panel-head"><span class="label">Violation Log</span>` +
       `<span class="meta" id="spc-vlog-meta">0</span></div>` +

@@ -137,6 +137,23 @@ export class KpiStrip {
     this._raf = null;
     this._offLocale = null;
     this._choreoDur = null; // temp count duration override during epoch choreo (M3)
+    // T33 degraded mode: 1366-1919 (and the 768-1365 band) show 4 cards inline
+    // + a "+2" popover holding the last two cards. matchMedia drives the toggle.
+    this._mqDegrade = null;
+    this._onMqChange = () => this._applyResponsive();
+    this._moreBtn = null;
+    this._popover = null;
+    // The two trailing cards that move into the "+2" popover in degraded mode.
+    this._overflowKeys = ['oee', 'alarms'];
+    // popover dismissal: outside-click + Escape (keyboard accessible).
+    this._onDocClick = (e) => {
+      if (!this._moreBtn || !this._popover) return;
+      if (this._moreBtn.contains(e.target) || this._popover.contains(e.target)) return;
+      this._closePopover();
+    };
+    this._onPopKeydown = (e) => {
+      if (e.key === 'Escape') { this._closePopover(); if (this._moreBtn) this._moreBtn.focus(); }
+    };
   }
 
   init() {
@@ -144,9 +161,71 @@ export class KpiStrip {
     // 6A / T11: re-pull labels the instant the locale flips — no 1-tick lag.
     // We only refresh the i18n text (idempotent DOM patch), never the values.
     this._offLocale = onLocaleChange(() => this._refreshLabels());
+    // T33: install the degraded-mode (6->4 + "+2" popover) responsive behavior.
+    this._installResponsive();
     // Paint immediately so the strip is never blank between init and first tick.
     this.update(this.state && this.state.kpis ? 0 : 0);
     return this;
+  }
+
+  // -------------------------------------------------------------------------
+  // T33 responsive: between the tablet floor and 1920 the strip shows 4 cards
+  // inline + a "+2" popover (keyboard accessible) holding the trailing two.
+  // matchMedia '(min-width:768px) and (max-width:1919px)' is the degraded band;
+  // >=1920 shows all six inline; <768 the responsive.css rejoins all six as a
+  // 2x3 grid (this code only toggles the data attr — CSS owns the grid).
+  // -------------------------------------------------------------------------
+  _installResponsive() {
+    if (typeof matchMedia !== 'function') return;
+    this._mqDegrade = matchMedia('(min-width: 768px) and (max-width: 1919px)');
+    // addEventListener('change') is the modern API; guard for older engines.
+    if (this._mqDegrade.addEventListener) {
+      this._mqDegrade.addEventListener('change', this._onMqChange);
+    } else if (this._mqDegrade.addListener) {
+      this._mqDegrade.addListener(this._onMqChange);
+    }
+    this._applyResponsive();
+  }
+
+  _applyResponsive() {
+    if (!this._built || !this._moreBtn) return;
+    const degraded = this._mqDegrade && this._mqDegrade.matches;
+    this.container.setAttribute('data-kpi-overflow', degraded ? '1' : '0');
+    // move the overflow cards between the inline strip and the popover panel.
+    for (const key of this._overflowKeys) {
+      const entry = this.cards.get(key);
+      if (!entry) continue;
+      entry.root.classList.add('kpi-overflow-card');
+      const dest = degraded ? this._popover : this.container;
+      // keep the strip ending with the "+2" button (insert cards before it).
+      if (degraded) {
+        if (entry.root.parentNode !== this._popover) this._popover.appendChild(entry.root);
+      } else if (entry.root.parentNode !== this.container) {
+        this.container.insertBefore(entry.root, this._moreWrap);
+      } else {
+        void dest;
+      }
+    }
+    if (!degraded) this._closePopover();
+  }
+
+  _togglePopover() {
+    const open = this._moreBtn.getAttribute('aria-expanded') === 'true';
+    if (open) this._closePopover(); else this._openPopover();
+  }
+  _openPopover() {
+    this._moreBtn.setAttribute('aria-expanded', 'true');
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', this._onDocClick, true);
+      document.addEventListener('keydown', this._onPopKeydown, true);
+    }
+  }
+  _closePopover() {
+    if (this._moreBtn) this._moreBtn.setAttribute('aria-expanded', 'false');
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('click', this._onDocClick, true);
+      document.removeEventListener('keydown', this._onPopKeydown, true);
+    }
   }
 
   // Re-pull every label + unit from i18n without touching value animations.
@@ -213,6 +292,29 @@ export class KpiStrip {
         animStart: 0,
       });
     }
+    // T33: the "+2" overflow trigger + popover panel (kept at the end of the
+    // strip so the four inline cards precede it). Hidden by default; CSS shows
+    // the trigger only when #kpi-strip[data-kpi-overflow="1"].
+    const moreWrap = document.createElement('div');
+    moreWrap.className = 'kpi-more-wrap';
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'kpi-more';
+    moreBtn.setAttribute('aria-haspopup', 'true');
+    moreBtn.setAttribute('aria-expanded', 'false');
+    moreBtn.textContent = '+' + this._overflowKeys.length;
+    moreBtn.setAttribute('aria-label', '+' + this._overflowKeys.length);
+    moreBtn.addEventListener('click', (e) => { e.stopPropagation(); this._togglePopover(); });
+    const popover = document.createElement('div');
+    popover.className = 'kpi-popover';
+    popover.setAttribute('role', 'group');
+    moreWrap.appendChild(moreBtn);
+    moreWrap.appendChild(popover); // sibling AFTER the trigger (matches CSS)
+    this.container.appendChild(moreWrap);
+    this._moreWrap = moreWrap;
+    this._moreBtn = moreBtn;
+    this._popover = popover;
+
     this._injectStyleOnce();
     this._built = true;
   }
@@ -385,6 +487,18 @@ export class KpiStrip {
     }
     this.container.classList.remove('epoch-countdown');
     if (this._offLocale) { this._offLocale(); this._offLocale = null; }
+    // T33: tear down responsive listeners + popover document listeners.
+    this._closePopover();
+    if (this._mqDegrade) {
+      if (this._mqDegrade.removeEventListener) {
+        this._mqDegrade.removeEventListener('change', this._onMqChange);
+      } else if (this._mqDegrade.removeListener) {
+        this._mqDegrade.removeListener(this._onMqChange);
+      }
+      this._mqDegrade = null;
+    }
+    this.container.removeAttribute('data-kpi-overflow');
+    this._moreWrap = this._moreBtn = this._popover = null;
     this.cards.clear();
     this.container.textContent = '';
     this._built = false;

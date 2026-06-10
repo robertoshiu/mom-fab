@@ -172,7 +172,7 @@ const apc = {
     head.appendChild(h1);
 
     const actions = doc.createElement('div');
-    actions.className = 'apc-actions';
+    actions.className = 'apc-actions mobile-actions'; // T33: collapse to notice <768
 
     // controller segmented toggle (EWMA | PID)
     const seg = doc.createElement('div');
@@ -184,12 +184,20 @@ const apc = {
     seg.appendChild(this._segPid);
     actions.appendChild(seg);
 
+    // T33 <768 desktop-only notice (shown by responsive.css when buttons hide).
+    const apcDtOnly = doc.createElement('span');
+    apcDtOnly.className = 'mobile-desktop-only';
+    apcDtOnly.setAttribute('data-i18n', 'common.desktop_only');
+    apcDtOnly.textContent = (this._ctx && this._ctx.t ? this._ctx.t : t)('common.desktop_only');
+    actions.appendChild(apcDtOnly);
+
     head.appendChild(actions);
     root.appendChild(head);
 
     // ---------- R2R panel (top) ----------
     const r2rPanel = doc.createElement('div');
     r2rPanel.className = 'panel apc-r2r';
+    r2rPanel.dataset.mobile = 'hide'; // T33 <768: R2R hidden (rep = FDC)
     const r2rHead = doc.createElement('div');
     r2rHead.className = 'panel-head';
     this._r2rLabel = doc.createElement('span');
@@ -216,6 +224,7 @@ const apc = {
     // ---------- FDC panel (bottom) ----------
     const fdcPanel = doc.createElement('div');
     fdcPanel.className = 'panel apc-fdc';
+    fdcPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: APC FDC
     const fdcHead = doc.createElement('div');
     fdcHead.className = 'panel-head';
     this._fdcLabel = doc.createElement('span');
