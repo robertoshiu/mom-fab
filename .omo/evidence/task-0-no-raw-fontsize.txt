@@ -1,0 +1,18 @@
+=== task-0 no-raw-fontsize check ===
+Scenario: 無模組自定義字級 (no module-level raw font-size literals)
+Date: 2026-06-10
+
+Rule: font-size literals (e.g. 'font-size: 13px') are forbidden outside
+      styles/tokens.css and styles/theme.css. Modules MUST use var(--fs-*).
+
+Target per plan QA: styles/modules.css + modules/ — neither exists yet (created by later tasks).
+Substitute now: scan entire styles/ tree, excluding the two allowed files.
+
+--- raw 'font-size: <number>px/rem/em' hits in styles/ excluding tokens.css+theme.css ---
+(none) — PASS
+
+--- existence of plan-targeted paths ---
+styles/modules.css: not yet created (deferred to owning task)
+modules/: not yet created (deferred to owning task)
+
+RESULT: PASS (0 raw font-size literals outside tokens.css/theme.css)

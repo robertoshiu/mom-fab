@@ -1,0 +1,26 @@
+{
+  "task": "task-0",
+  "scenario": "token 可解析",
+  "playwright_deferred": true,
+  "deferral_note": "Playwright token-resolution scenario deferred: no index.html exists until T9. Node-side substitute below parses styles/tokens.css directly and asserts the four reference tokens resolve to expected values.",
+  "node_substitute": {
+    "method": "regex parse of styles/tokens.css :root block",
+    "resolved": {
+      "--fs-kpi": "32px",
+      "--sp-4": "16px",
+      "--r-card": "4px",
+      "--sh-md": "0 4px 12px rgba(0, 0, 0, 0.3)"
+    },
+    "expected": {
+      "--fs-kpi": "32px",
+      "--sp-4": "16px",
+      "--r-card": "4px",
+      "--sh-md": "0 4px 12px rgba(0, 0, 0, 0.3)"
+    },
+    "all_nonempty": true,
+    "fs_kpi_pass": true,
+    "sp_4_pass": true,
+    "r_card_pass": true,
+    "sh_md_defined": true
+  }
+}
