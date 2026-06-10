@@ -1,0 +1,23 @@
+T8 theme-switch node-side substitute (Playwright browser scenario deferred — no index.html until T9)
+
+Parsed styles/theme.css :root (dark) and :root[data-theme="light"]
+
+Required variable coverage:
+  --bg-primary: dark=#0a1428 | light=#f8fafc
+  --bg-elevated: dark=#142840 | light=#ffffff
+  --text-primary: dark=#e8f1ff | light=#1a2332
+  --accent: dark=#00d4ff | light=#0066cc
+  --warn: dark=#ffb547 | light=#a65f00
+  --danger: dark=#ff4d6d | light=#c81e4a
+  --grid: dark=rgba(0, 212, 255, 0.08) | light=rgba(0, 0, 0, 0.05)
+
+font-mono reference present in theme.css = true
+
+ASSERT :root --bg-primary        = #0a1428
+ASSERT :root[light] --bg-primary = #f8fafc
+ASSERT both define --bg-primary AND values differ = PASS
+
+Utility .kpi-card present (plan T8 alias) = PASS
+Utility .dialog present                   = PASS
+
+DEFERRED: browser theme-switch scenario (toggle data-theme on <html>, compare getComputedStyle(documentElement)[--bg-primary]) requires index.html shell (T9). To be exercised under Playwright at F3.
