@@ -293,6 +293,8 @@ const scm = {
     this._lastTick = 0;
     this._table = null;
     this._timers = new Set();
+    // cross-module focus target (MAT row id), re-stamped on every table rebuild.
+    this._focusedRowId = null;
 
     // scaffold (built once; update() reconciles content) ---------------------
     const root = document.createElement('div');
@@ -376,25 +378,33 @@ const scm = {
     this.update(container, ctx, 0);
   },
 
+  // Map any inbound lotId to one of the deterministic MAT-000N rows the table
+  // actually renders. A material.in_transit event carries a lot id (e.g. L-007)
+  // that does NOT exist in this module's own in-transit table — the table is
+  // keyed MAT-0001..MAT-000N. We fold the lot id onto a real row via fnv1a so
+  // the same lot always lands on the same row (deterministic, no Math.random).
+  // Returns the MAT row id, or null if there are no rows.
+  _matRowForLot(lotId) {
+    if (!lotId || !this._inTransit.length) return null;
+    const idx = fnv1a(String(lotId)) % this._inTransit.length;
+    return this._inTransit[idx].id;
+  },
+
   // event handler: a live in-transit material event. Mutate state first, then
   // patch incrementally (full reconcile happens on the next tick update).
+  // We do NOT mint phantom EVT- rows (they were never focusable — the cross-
+  // module nav highlight keys on the rendered MAT-000N rows). Instead we map
+  // the event's lot onto its deterministic MAT row and surface that row now so
+  // the chip → SCM navigation always lands on a visible, highlightable row.
   _onInTransit(payload) {
     if (!payload || !payload.lotId) return;
-    const id = 'EVT-' + payload.lotId;
-    if (this._removed.has(id)) return;
-    if (this._inTransit.some((r) => r.id === id)) return;
-    const rng = stream('evt:' + payload.lotId);
-    const supplier = this._suppliers[fnv1a(payload.lotId) % this._suppliers.length];
-    this._inTransit.push({
-      id,
-      supplier: supplier.id,
-      product: payload.product || (products[0] && products[0].id) || '',
-      material: MATERIAL_KINDS[fnv1a(payload.lotId) % MATERIAL_KINDS.length],
-      qty: payload.wafers || intIn(rng, 1, 24) * 25,
-      arriveTick: this._lastTick,
-      etaTick: this._lastTick + intIn(rng, 2, 9),
-      status: 'in_transit',
-    });
+    const matId = this._matRowForLot(payload.lotId);
+    if (!matId) return;
+    const row = this._inTransit.find((r) => r.id === matId);
+    if (!row || this._removed.has(matId)) return;
+    // ensure the mapped row is visible at/after the current tick so a chip that
+    // fired before this row's natural arriveTick still has a row to focus.
+    if (row.arriveTick > this._lastTick) row.arriveTick = this._lastTick;
     if (this._table) this._refreshTable(this._lastTick);
   },
 
@@ -525,6 +535,10 @@ const scm = {
   },
 
   // tag each rendered <tr> with its lot id for the slide-out animation target.
+  // Also re-apply the cross-module focus highlight: _refreshTable destroys and
+  // rebuilds the Table every tick, which would otherwise wipe the .scm-row-focus
+  // class one tick after a chip navigation. We persist the focused row id and
+  // re-stamp it here so the highlight sticks until the user navigates away.
   _tagRowIds() {
     const host = this._els.tableHost;
     const trs = host.querySelectorAll('tbody tr');
@@ -534,6 +548,9 @@ const scm = {
       if (tr.classList.contains('vtable-pad')) return;
       const row = rows[idx++];
       if (row) tr.setAttribute('data-rowid', row.id);
+      if (row && this._focusedRowId && row.id === this._focusedRowId) {
+        tr.classList.add('scm-row-focus');
+      }
     });
   },
 
@@ -664,28 +681,35 @@ const scm = {
     this._refreshTable(this._lastTick);
 
     // T24 cross-cutting focus: a material.in_transit chip (or any nav carrying a
-    // lotId) highlights that lot's in-transit row. The store keys rows as
-    // 'EVT-<lotId>' for event-sourced rows; match either form. One-shot.
+    // lotId) highlights the in-transit row it maps to. ctx.focus is the router's
+    // one-shot payload — it is stamped BEFORE this module mounts and survives the
+    // first update() here, so a chip clicked while SCM is on another module still
+    // lands its highlight on first paint. One-shot (router clears it afterwards).
     const focus = ctx.focus;
     if (focus && focus.lotId) this._focusRow(focus.lotId);
   },
 
   // T24: highlight + scroll a focused in-transit row (cross-module nav target).
+  // The chip's lotId (e.g. L-007) is not a row key; rows are MAT-000N. Resolve
+  // the lotId to its deterministic MAT row, then also surface that row (it may
+  // not have arrived by tick yet) so the highlight has a target. Falls back to a
+  // direct id match so a nav that already carries a MAT id still works.
   _focusRow(lotId) {
     const host = this._els && this._els.tableHost;
     if (!host) return;
-    const trs = host.querySelectorAll('tbody tr');
-    trs.forEach((tr) => tr.classList.remove('scm-row-focus'));
-    const candidates = ['EVT-' + lotId, lotId];
-    for (const tr of trs) {
-      const rid = tr.getAttribute('data-rowid');
-      if (rid && candidates.indexOf(rid) >= 0) {
-        tr.classList.add('scm-row-focus');
-        if (typeof tr.scrollIntoView === 'function') {
-          try { tr.scrollIntoView({ block: 'nearest' }); } catch (_) { /* defensive */ }
-        }
-        break;
-      }
+    const matId = this._matRowForLot(lotId);
+    const candidates = [matId, lotId].filter(Boolean);
+    // Resolve to a concrete row; ensure it is visible before highlighting.
+    const row = this._inTransit.find((r) => candidates.indexOf(r.id) >= 0);
+    if (!row || this._removed.has(row.id)) return;
+    if (row.arriveTick > this._lastTick) row.arriveTick = this._lastTick;
+    // Persist the target so per-tick table rebuilds re-stamp it (_tagRowIds).
+    this._focusedRowId = row.id;
+    this._refreshTable(this._lastTick); // rebuild → _tagRowIds applies the class
+    // scroll the freshly-stamped row into view.
+    const tr = host.querySelector(`tr[data-rowid="${row.id}"]`);
+    if (tr && typeof tr.scrollIntoView === 'function') {
+      try { tr.scrollIntoView({ block: 'nearest' }); } catch (_) { /* defensive */ }
     }
   },
 
