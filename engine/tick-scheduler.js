@@ -14,7 +14,8 @@
 //    tick 179 末
 //       │ freeze emits
 //       ▼
-//    [SNAPSHOT] state.snapshotForEpochReset()   ← H2 carryover (SPC/yield/FDC tails)
+//    [SNAPSHOT] state.snapshotForEpochReset()   ← H2 epoch seam (no-op; continuity
+//                                                  via uncleared FIFO buffers)
 //       │
 //       ▼
 //    [CLEAR]    state.suppressOverrides.clear() ← T29 epoch-scoped user actions
@@ -28,8 +29,8 @@
 //       ▼
 //    [RESUME]   resume emits → tick 0 正常發送
 //
-// 順序理由: snapshot 先於 clear (否則被 Hold 的 lot 在 carryover 裡復活);
-//           snapshot 先於 reset (否則拿到空資料閃空)。
+// 順序理由: snapshot 先於 clear / reset 的順序保留 (穩定的 epoch seam);
+//           carryover tail 機制已於 Wave 4 移除,連續性改由 FIFO buffer 不清空提供。
 // ---------------------------------------------------------------------------
 
 const TICK_INTERVAL_MS = 1000;
@@ -58,7 +59,7 @@ export class TickScheduler {
     // Each defaults to a no-op so the module runs head-less under node tests.
     this._hooks = {
       onFreeze: hooks.onFreeze || NOOP,            // (1) freeze dispatcher emits
-      onSnapshot: hooks.onSnapshot || NOOP,        // (2) state.snapshotForEpochReset()
+      onSnapshot: hooks.onSnapshot || NOOP,        // (2) state.snapshotForEpochReset() (epoch seam; no-op)
       onClearOverrides: hooks.onClearOverrides || NOOP, // (3) state.suppressOverrides.clear()
       onChoreography: hooks.onChoreography || NOOP, // (5) 1.2s choreographed 轉場
       onResume: hooks.onResume || NOOP,            // (6) resume emits

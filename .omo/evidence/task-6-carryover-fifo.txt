@@ -4,9 +4,13 @@ oldest retained value = 10 (expect 10, ticks 0-9 dropped)
 newest retained value = 59 (expect 59)
 ASSERT FIFO dropped oldest: PASS
 other series MEM-DDR/temp length = 5 (untouched)
-snapshot spcTail length = 50
-snapshot yieldTail length = 50
-snapshot fdcTail length = 50
-ASSERT all tails === 50: PASS
-ASSERT spcTail === last 50 of buffer: PASS
-snapshot stored on state.epochCarryover: PASS
+
+ERRATUM (Wave 4 audit): the epochCarryover {spcTail, yieldTail, fdcTail}
+mechanism this evidence originally exercised was never consumed by any module
+(grep-confirmed) and has been REMOVED. H2 chart continuity across the epoch
+boundary is instead provided by NOT clearing the SPC / yield / FDC FIFO
+buffers at tick->0 — each chart's last window carries straight into the next
+epoch with no blank flash. snapshotForEpochReset() is retained as the epoch
+seam (scheduler reset order) but is now a documented no-op.
+The earlier "snapshot spcTail/yieldTail/fdcTail length = 50" assertions no
+longer apply and are withdrawn.

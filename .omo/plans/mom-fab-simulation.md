@@ -736,6 +736,7 @@ F5 T31,F1,F2,F3,F4 - -
     - 屬性: `lots: Map`, `equipment: Map`, `recipes: Map`, `spcSamples: Array<{tick, product, parameter, value}>` (capped at 50 per product×param, FIFO), `defects: Array<{tick, lotId, x, y, type}>` (capped at 500), `alarms: Array`, `kpis: {wip, throughput, yield, mtbf, oee}`
     - **【C2 修】** `suppressOverrides: Map<lotId, {status: 'hold'|'scrap'|'complete', until: tick}>`: 使用者按鈕觸發的狀態覆寫。Dispatcher 發送 suppressible 事件前查表，若 lot 在 override 名單內則跳過
     - **【H2 修】** `epochCarryover: {spcTail: Array, yieldTail: Array, fdcTail: Array}`: epoch 結束時快照最近 50 個 SPC/良率/FDC 點，新 epoch 起始時 prepend 進對應 chart 的 buffer
+    - **【H2 實作註記】** epoch 連續性由 FIFO buffer 不清空提供;epochCarryover tail 機制經 Wave 4 審計證實未被消費,已移除 (簡化)
     - 方法: `updateLot(lotId, patch)`, `addSpcSample(sample)` (含 FIFO trim), `addDefect(d)` (含 FIFO trim), `pushAlarm(alarm)`, `recomputeKpis()`, `setOverride(lotId, status, untilTick)`, `clearOverride(lotId)`, `snapshotForEpochReset()`
     - 無 reactive proxy (不需要 — modules 直接呼叫 method)
     - 在每 tick 結尾呼叫 `recomputeKpis()`
