@@ -43,10 +43,28 @@ function createChart(kind, config = {}) {
     container.classList.add('chartkit');
     if (config.ariaLabel) container.setAttribute('aria-label', config.ariaLabel);
 
+    // BREAK THE SVG↔HOST HEIGHT FEEDBACK LOOP (Wave 4 P1).
+    // draw() sizes the svg's height ATTRIBUTE from the host's measured height.
+    // If the svg is in normal flow, that rendered height becomes the host's
+    // content height, the ResizeObserver fires, draw() reads the now-larger box
+    // and grows the svg again — an unbounded loop (yield/APC SVGs ballooned to
+    // thousands of px; the gantt collapsed). Taking the svg OUT OF FLOW
+    // (absolute, inset:0) makes it fill the host's own box while contributing
+    // zero intrinsic height, so the host size is governed purely by the layout
+    // (flex/grid track, or min-height in the stacked responsive band). We set
+    // these inline so the fix holds regardless of which stylesheet is loaded.
+    const hostPos = (typeof getComputedStyle === 'function')
+      ? getComputedStyle(container).position : 'static';
+    if (hostPos === 'static') container.style.position = 'relative';
+    container.style.overflow = 'hidden';
+
     svg = d3
       .select(container)
       .append('svg')
-      .attr('preserveAspectRatio', 'none');
+      .attr('preserveAspectRatio', 'none')
+      .style('position', 'absolute')
+      .style('inset', '0')
+      .style('display', 'block');
     g = svg.append('g');
 
     tooltip = d3
@@ -82,9 +100,13 @@ function createChart(kind, config = {}) {
   }
 
   function dims() {
+    // Measure the HOST box only. With `.chartkit { contain: size }` and the svg
+    // taken out of flow (position:absolute), the svg can no longer inflate the
+    // host, so this reading is stable across resizes (no feedback loop). Round
+    // to whole px so sub-pixel jitter never re-triggers the ResizeObserver.
     const rect = container.getBoundingClientRect();
-    const W = Math.max(rect.width || container.clientWidth || 320, 80);
-    const H = Math.max(rect.height || container.clientHeight || 200, 60);
+    const W = Math.max(Math.round(rect.width || container.clientWidth || 320), 80);
+    const H = Math.max(Math.round(rect.height || container.clientHeight || 200), 60);
     // Clamp inner dims to >=0 at the source: on a first cold mount the container
     // can report a height smaller than the margins, making iw/ih transiently
     // negative and producing negative SVG rect heights.

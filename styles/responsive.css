@@ -114,9 +114,26 @@
   #content .erp-grid { grid-template-columns: 1fr !important; }
   #content .wip-bottom { flex-direction: column !important; }
 
-  /* Give stacked data panels a workable intrinsic height (charts need a
-     measurable box; ResizeObserver in chart-kit re-renders to fit). */
+  /* Give stacked data panels a workable intrinsic height. In the desktop grids
+     the panels (and their chart hosts) get height from the grid track; once the
+     grid flattens to a single auto-height column, those panels would collapse
+     to header height because the chart-kit svg is taken out of flow (it no
+     longer inflates the box — that inflation was the Wave-4 feedback loop).
+     The module sheets pin `#content .<root> .panel { min-height: 0 }` at a high
+     specificity, so we must use !important to restore a measurable box here. */
   #content .panel { min-height: 200px; }
+  #content .mes-root .panel,
+  #content .wip-root .panel,
+  #content .recipe-root .panel,
+  #content .apc-root .panel,
+  #content .aps-view .panel,
+  #content #spc-root .panel,
+  #content #scm-root .panel,
+  #content .yield-grid .panel { min-height: 260px !important; }
+  /* the chart host inside those panels fills the restored box. */
+  #content .yield-grid .panel-body > .ck-host,
+  #content .apc-chart-body .chartkit,
+  #content .apc-fdc-plot .chartkit { min-height: 200px; }
 
   /* #content already scrolls (overflow:auto in the shell); ensure roots
      don't force their children to 0-height in a flex parent. */

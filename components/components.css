@@ -92,8 +92,16 @@
 .vtable tr.vtable-pad td { padding: 0; border: 0; height: 0; }
 
 /* ---- chart-kit container states ---- */
-.chartkit { position: relative; width: 100%; height: 100%; min-height: 0; }
-.chartkit svg { width: 100%; height: 100%; display: block; }
+/* The host owns sizing; the SVG must NOT feed its own height back into the
+   layout. In a flex:1 / height:100% host with no definite height, an in-flow
+   svg sized at height:100% would contribute its rendered height to the host,
+   the ResizeObserver would read the larger box, re-set the svg height attr,
+   and the box would grow without bound (yield/APC SVGs ballooned to 1000s of
+   px; the WIP gantt collapsed). Taking the svg out of flow (absolute, inset:0)
+   makes it fill the host box exactly while contributing zero intrinsic size,
+   and overflow:hidden + the contain hint clamp any transient overshoot. */
+.chartkit { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+.chartkit svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .chartkit-state {
   position: absolute;
   inset: 0;
