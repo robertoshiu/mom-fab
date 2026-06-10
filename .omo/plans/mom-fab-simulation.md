@@ -2199,7 +2199,7 @@ F5 T31,F1,F2,F3,F4 - -
   Output: `Banned API [0 hits] | Destroy [N/N] | Memory [PASS/FAIL] | DOM [PASS/FAIL] | A11y [PASS/FAIL] | VERDICT`
 
 - [ ] F3. **Real Manual QA via Playwright** — `unspecified-high` + `playwright` skill
-  啟動 `python3 -m http.server 8000` 在 repo root, 然後:
+  啟動 `(cd repo && node tools/serve.mjs 8000 &)` 在 repo root (理由: Windows python http.server 對 ESM .js 回傳錯誤 MIME, 會破壞原生模組載入), 然後:
   - 載入 index.html, 截圖初始狀態
   - **【C3 修】** 設定 `page.context().setOffline(true)` 後重新載入, 確認仍能渲染 (vendor fallback)
   - 9 模組各切一次, 截圖
@@ -2265,8 +2265,8 @@ F5 T31,F1,F2,F3,F4 - -
 ### Verification Commands
 
 ```bash
-# 啟動 http server (背景)
-python3 -m http.server 8000 &
+# 啟動 http server (背景) — 理由: Windows python http.server 對 ESM .js 回傳錯誤 MIME, 會破壞原生模組載入
+(cd repo && node tools/serve.mjs 8000 &)
 
 # 載入首頁, 確認 < 2s 載入
 curl -o /dev/null -s -w "%{time_total}\n" http://localhost:8000/
