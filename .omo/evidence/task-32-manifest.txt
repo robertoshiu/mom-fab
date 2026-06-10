@@ -1,0 +1,65 @@
+T32 — Scenario Manifest 邊界 (scenarios/mom-fab.js)
+Evidence captured 2026-06-10 (node v22, deterministic; no Math.random/Date.now used)
+
+============================================================
+QA Scenario 1: manifest 純資料完整性
+  Tool: Bash (node dynamic import)
+  Command:
+    node -e "import('./scenarios/mom-fab.js').then(m => { console.log(m.products.length, m.toolGroups.length, m.heroTimeline.steps.length); })"
+  Output: 5 8 5
+  Expected: products===5, toolGroups===8, heroTimeline 有 5 個 tick 步驟
+  Result: PASS
+
+Full assertion run (dynamic import + exports present + frozen):
+  PASS  products.length===5
+  PASS  toolGroups.length===8
+  PASS  defectTypes>=6
+  PASS  heroTimeline.steps===5
+  PASS  WAFERS_PER_LOT===25
+  PASS  LOT_COUNT===100
+  PASS  TOOL_COUNT===100
+  PASS  RECIPE_COUNT===50
+  PASS  yield.warn<90  (warn===90)
+  PASS  yield.danger<80 (danger===80)
+  PASS  yield.alert===88  (per I3 rolling yield alert)
+  PASS  eventRouting has all 12 event types
+  PASS  products frozen
+  PASS  toolGroups frozen
+  PASS  defectTypes frozen
+  PASS  kpiThresholds frozen
+  PASS  heroTimeline frozen
+  PASS  eventRouting frozen
+  PASS  hero tick offsets 0/10/18/25/30
+  PASS  hero modules mes/spc/apc/yield/overview
+  PASS  defectInjectionTick===10
+  PASS  autoplayGateTick===3
+  PASS  replayPolicy once-per-load
+  ALL: PASS
+
+============================================================
+QA Scenario 2: 零依賴檢查 (zero import)
+  Spec uses ast_grep_search "import $$$ from $SRC"; ast-grep not available in
+  this environment — substituted equivalent grep per IRON RULES (runnable now).
+  Command: grep -nE "^[[:space:]]*import[[:space:]]" scenarios/mom-fab.js
+  Output: (none)
+  Count:  grep -cE "^[[:space:]]*import[[:space:]]" scenarios/mom-fab.js => 0
+  Expected: 0 hits (純資料, 無 import)
+  Result: PASS
+  (See task-32-no-imports.txt for the dedicated zero-import evidence.)
+
+============================================================
+Acceptance Criteria:
+  [PASS] exports 5 products / 8 tool groups / defect types / 25 wafers per lot / KPI thresholds
+  [PASS] hero story timeline in tick units (0/10/18/25/30), defect injection bound to tick 10
+  [PASS] exports event-type -> module routing table (12 types)
+  [PASS] zero dependency: grep import == 0 hits
+  [PASS] no plugin / DSL / multi-scenario loader — single-layer JS data only
+
+Module routing table (event -> module):
+  lot.start->mes  lot.complete->mes  step.transition->mes
+  equipment.alarm->aps  equipment.idle->aps
+  spc.violation->spc  apc.adjustment->apc
+  defect.detected->yield  recipe.changed->recipe  yield.alert->yield
+  po.received->erp  material.in_transit->scm
+  (target module ids verified against plan module set:
+   mes,aps,erp,spc,apc,wip,scm,recipe,yield; 'overview' = default home view for t+30 return.)

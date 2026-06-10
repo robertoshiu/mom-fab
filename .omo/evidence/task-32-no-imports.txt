@@ -1,0 +1,17 @@
+T32 — Zero-dependency check (scenarios/mom-fab.js)
+Captured 2026-06-10
+
+QA Scenario 2: 零依賴檢查
+  Spec tool: ast_grep_search pattern "import $$$ from $SRC" lang javascript
+  ast-grep binary not present in this environment; substituted equivalent
+  grep (runnable now) per IRON RULES / QA+EVIDENCE policy.
+
+Command: grep -nE "^[[:space:]]*import[[:space:]]" scenarios/mom-fab.js
+Stdout:  (empty — no matching lines)
+Exit:    1 (grep: no match)
+
+Count command: grep -cE "^[[:space:]]*import[[:space:]]" scenarios/mom-fab.js
+Count:   0
+
+Expected: 0 hits (pure data, no import — does not depend on any engine module)
+Result:  PASS
