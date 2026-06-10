@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FAB MOM</title>
 
-  <!-- Import map: D3 v7 from esm.sh as a single "d3" barrel (C1). Local
-       modules resolve relative via "./". No bundler — native ESM only. -->
+  <!-- Import map: the "d3" barrel resolves to the resilient loader (T28/C1+C3),
+       NOT esm.sh directly. The loader top-level-awaits D3 from esm.sh and falls
+       back to the self-hosted ./vendor/d3.v7.min.js UMD bundle when the CDN is
+       unreachable (offline). ONLY the single "d3" barrel is mapped — no "d3/"
+       subpath (C1: consumers use d3.scaleLinear / d3.select, never d3-scale).
+       Local modules resolve relative via "./". No bundler — native ESM only. -->
   <script type="importmap">
   {
     "imports": {
-      "d3": "https://esm.sh/d3@7.8.5",
-      "d3/": "https://esm.sh/d3@7.8.5/"
+      "d3": "./engine/d3-loader.js"
     }
   }
   </script>

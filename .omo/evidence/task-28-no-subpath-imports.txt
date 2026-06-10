@@ -1,0 +1,54 @@
+=== T28 import hygiene grep evidence ===
+Generated: deterministic grep over modules/ shell/ components/ engine/
+
+--- (C1) d3 subpath imports: pattern  from ['"]d3-   (MUST be 0) ---
+0 hits
+
+--- (C1) d3/ barrel-subpath in import map (MUST be absent) ---
+11:       unreachable (offline). ONLY the single "d3" barrel is mapped — no "d3/"
+
+--- import map d3 target (MUST be ./engine/d3-loader.js) ---
+17:      "d3": "./engine/d3-loader.js"
+
+--- default-import consumers: import d3 from 'd3' ---
+engine/d3-loader.js:17:// CONSUMER COMPAT: consumers may write EITHER `import d3 from 'd3'` (default) OR
+engine/d3-loader.js:56:    // a clean default ourselves so `import d3 from 'd3'` === the API object.
+engine/d3-loader.js:113:// Default export — `import d3 from 'd3'` gets the full API object.
+
+--- namespace-import consumers: import * as d3 from 'd3' ---
+modules/apc.js:35:import * as d3 from 'd3';
+modules/aps.js:26:import * as d3 from 'd3';
+modules/wip.js:32:import * as d3 from 'd3';
+modules/yield.js:28:import * as d3 from 'd3';
+components/chart-kit.js:18:import * as d3 from 'd3';
+engine/d3-loader.js:18:// `import * as d3 from 'd3'` (namespace). To satisfy both against ONE loader we
+engine/d3-loader.js:116:// Named exports — `import * as d3 from 'd3'` reads these bindings. We expose the
+
+--- all 'from d3' references (barrel only) ---
+modules/apc.js:35:import * as d3 from 'd3';
+modules/aps.js:26:import * as d3 from 'd3';
+modules/wip.js:32:import * as d3 from 'd3';
+modules/yield.js:28:import * as d3 from 'd3';
+components/chart-kit.js:18:import * as d3 from 'd3';
+engine/d3-loader.js:17:// CONSUMER COMPAT: consumers may write EITHER `import d3 from 'd3'` (default) OR
+engine/d3-loader.js:18:// `import * as d3 from 'd3'` (namespace). To satisfy both against ONE loader we
+engine/d3-loader.js:56:    // a clean default ourselves so `import d3 from 'd3'` === the API object.
+engine/d3-loader.js:113:// Default export — `import d3 from 'd3'` gets the full API object.
+engine/d3-loader.js:116:// Named exports — `import * as d3 from 'd3'` reads these bindings. We expose the
+
+=== INTERPRETATION (T28) ===
+PASS (C1): 0 d3-subpath imports anywhere (no `from 'd3-...'`).
+PASS (C1): import map maps ONLY the single "d3" barrel -> ./engine/d3-loader.js;
+           the prior "d3/" subpath mapping was removed.
+PASS: every consumer resolves the "d3" barrel (no direct esm.sh / vendor imports).
+
+DEVIATION (documented, out-of-ownership): 5 consumer files still use
+  `import * as d3 from 'd3'` (namespace) instead of `import d3 from 'd3'` (default):
+    modules/apc.js, modules/aps.js, modules/wip.js, modules/yield.js, components/chart-kit.js
+  These files are NOT in T28's strict file ownership (vendor/, engine/d3-loader.js,
+  index.html only), so T28 does not edit them. The d3-loader is built to support
+  BOTH import styles: it provides a default export AND mirrored named exports, so
+  the namespace form works identically. Verified live: charts render on BOTH the
+  esm.sh path and the forced-fallback vendor path (see task-28 screenshots).
+  Plan AC "import * as d3 == 0 hits" is therefore deferred to the consumer-owning
+  task/F-wave; it is a no-op cosmetic change (would require editing 5 non-owned files).

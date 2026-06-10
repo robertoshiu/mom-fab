@@ -1,0 +1,38 @@
+=== T28 offline / fallback evidence note ===
+
+TWO PATHS PROVEN (browse on http://localhost:8528/):
+
+(a) NORMAL LOAD — esm.sh path
+    - window.__SIM.d3 present; scaleLinear/select/line/scaleBand/max/extent/
+      easeCubicInOut all === 'function'
+    - globalThis.d3 === undefined (no UMD injected), d3.version === undefined
+      (esm.sh barrel does not re-export `version`)
+    - console clean (no fallback warning)
+    - SPC charts render (2 svg, paths+rects); APC renders line charts
+    - boot spinner hidden, no boot-error banner
+    - evidence: .omo/evidence/task-28-normal-load.png
+
+(b) FALLBACK — vendor UMD path (forced via testability seam)
+    - method: localStorage.setItem('D3_FORCE_FALLBACK','1') then reload
+      (loader also honors globalThis.__D3_FORCE_FALLBACK === true)
+    - console.warn present: "d3-loader: forced fallback — using vendor bundle
+      (offline-test seam)"
+    - vendor <script src="./vendor/d3.v7.min.js"> injected; globalThis.d3 ===
+      object; d3.version === "7.8.5"
+    - APC renders 5 svg / 5 paths / 24 lines — full d3 API works from UMD bundle
+    - boot spinner hidden, no boot-error banner
+    - evidence: .omo/evidence/task-28-offline-load.png
+
+HONEST DEFERRAL: true network-level offline (Playwright page.context().setOffline
+(true)) is NOT reproducible with the gstack `browse` daemon in this environment
+(no setOffline command; verified via `browse --help`). Per the T28 spec this is
+explicitly deferred to the F-wave Playwright QA. The __D3_FORCE_FALLBACK /
+localStorage seam is the documented substitute and exercises the EXACT same code
+path the real offline failure would take (the esm.sh dynamic import is skipped /
+would reject -> vendor <script> injection -> globalThis.d3). The catch branch
+around `await import(ESM_URL)` is what a real offline error triggers; the seam
+bypasses only the network attempt, then runs identical fallback code.
+
+VENDOR BUNDLE: vendor/d3.v7.min.js — d3 v7.8.5, 279,633 bytes (~273KB < 350KB).
+  UMD header attaches API to globalThis.d3; verified in node vm sandbox
+  (version 7.8.5, scaleLinear/select functions present).
