@@ -10,10 +10,11 @@ import { SimulationState } from './engine/state.js';
 import { pregenerate } from './engine/factory.js';
 import { generateSkeleton } from './engine/skeleton.js';
 import { eventRouting } from './scenarios/mom-fab.js';
-import i18n, { setLocale, applyDom, t } from './i18n/index.js';
+import i18n, { setLocale, applyDom, t, onLocaleChange } from './i18n/index.js';
 import { initNav } from './shell/nav.js';
 import { KpiStrip } from './shell/kpi-strip.js';
 import { createEventRiver } from './shell/event-river.js';
+import { createRouter } from './shell/router.js';
 
 const KNOWN_EVENT_TYPES = new Set(Object.keys(eventRouting));
 
@@ -73,6 +74,22 @@ function boot() {
     'lot.complete': (p) => state.updateLot(p.lotId, { status: 'complete' }),
   });
 
+  // --- main-content SPA router (T13) ---------------------------------------
+  // Owns the 9 lazy modules' lifecycle in #content, replacing the static
+  // empty-state placeholder. ctx = { state, dispatcher, t, router }. Modules
+  // arrive in Wave 3; until then set('mes') fails soft into a warm inline panel
+  // (NOT the D14 boot banner). createRouter pre-registers all nine + wires the
+  // nav module:change + river:navigate intents.
+  const router = createRouter({
+    container: document.getElementById('content'),
+    state,
+    dispatcher,
+    t,
+  });
+  // 6A: locale change re-runs the active module's full reconcile so SVG/canvas
+  // text re-pulls t(key) (the [data-i18n] DOM scan can't reach inside charts).
+  onLocaleChange(() => router.refreshActive());
+
   // --- TickScheduler with epoch-reset hooks wired in T4's order contract ---
   // The scheduler OWNS the order (snapshot → clear → reset → choreo → resume);
   // we only supply the callbacks. Choreography is a null-op until T26/T30.
@@ -99,9 +116,16 @@ function boot() {
     emitSkeletonTick(tick);   // skeleton events → dispatcher.emit
     state.recomputeKpis();    // derive KPIs once per tick (state-first)
     kpiStrip.update(tick);    // T11: full reconcile after state mutation (2B)
+    router.tick(tick);        // T13: drive the active module's per-tick update (2B)
   }
 
   scheduler.start(onTick, () => {});
+
+  // Default module on boot: mes. The nav rail already dispatched module:change
+  // for 'mes' during initNav() (before the router existed to hear it), so we
+  // set it explicitly here. Until T15 lands this shows the warm soft-fail panel
+  // — acceptable this wave (it must NOT trip the D14 boot banner).
+  router.set('mes');
 
   // --- window.__SIM 8-key contract (3A) ------------------------------------
   // router / d3 / playHeroStory / stopHeroStory are null-stub placeholders;
@@ -109,7 +133,7 @@ function boot() {
   // scheduler so QA can shorten epochs deterministically.
   window.__SIM = {
     scheduler,
-    router: null,          // TODO(T13): SPA router registers here
+    router,                // T13: SPA router (module lifecycle owner)
     state,
     dispatcher,
     d3: null,              // TODO(T28): d3-loader registers the D3 barrel here
