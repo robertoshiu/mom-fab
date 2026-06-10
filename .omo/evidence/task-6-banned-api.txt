@@ -1,0 +1,7 @@
+Banned-API scan of engine/state.js
+  Math.random: absent
+  Date.now: absent
+  new Date: absent
+  crypto.getRandomValues: absent
+  new Proxy: absent
+RESULT: PASS — no banned APIs, no reactive Proxy

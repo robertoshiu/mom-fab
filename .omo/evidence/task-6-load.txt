@@ -1,0 +1,5 @@
+lots.size = 100
+ASSERT lots.size === 100: PASS
+kpis = {"wip":100,"throughput":0,"yield":100,"mtbf":2400,"oee":100}
+ASSERT kpis.wip positive integer: PASS (wip=100)
+equipment.size = 100, recipes.size = 50

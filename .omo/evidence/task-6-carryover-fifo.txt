@@ -1,0 +1,12 @@
+LOGIC-A/pressure series length = 50
+ASSERT FIFO cap === 50: PASS
+oldest retained value = 10 (expect 10, ticks 0-9 dropped)
+newest retained value = 59 (expect 59)
+ASSERT FIFO dropped oldest: PASS
+other series MEM-DDR/temp length = 5 (untouched)
+snapshot spcTail length = 50
+snapshot yieldTail length = 50
+snapshot fdcTail length = 50
+ASSERT all tails === 50: PASS
+ASSERT spcTail === last 50 of buffer: PASS
+snapshot stored on state.epochCarryover: PASS
