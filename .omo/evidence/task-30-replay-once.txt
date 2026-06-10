@@ -1,0 +1,13 @@
+T30 Replay Policy (once-per-load) — evidence
+port 8530, 2026-06-10T23:44:22Z
+
+1. Fresh load: autoplay fired exactly at scheduler.currentTick === 3 (autoplayGateTick).
+   Story ran MES->SPC->APC->Yield->overview; L-042 reached status 'recovered' at tick 33.
+
+2. setEpochLength(40); epoch wrapped tick->0. Watched ticks 0..5 (past gate tick 3):
+   post-wrap at tick 5: playing=false  => NO auto-replay on epoch loop (once-per-load held).
+
+3. Manual replay via nav ▶ (#nav-demo) click:
+   before: {"t":20,"playing":false}
+   after : {"t":22,"playing":true,"a":"mes","indLabel":"▶播放示範劇本中… / Playing demo story…"}
+   => indicator returns, story refires on demand.

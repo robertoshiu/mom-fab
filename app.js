@@ -16,6 +16,7 @@ import { initNav } from './shell/nav.js';
 import { KpiStrip } from './shell/kpi-strip.js';
 import { createEventRiver } from './shell/event-river.js';
 import { createRouter } from './shell/router.js';
+import { createHeroStory } from './modules/hero-story.js';
 
 const KNOWN_EVENT_TYPES = new Set(Object.keys(eventRouting));
 
@@ -31,8 +32,11 @@ function boot() {
 
   // --- left module navigation (T10) ---------------------------------------
   // Builds the 9-button rail + theme/locale/demo controls; the router (T13)
-  // listens for the module:change CustomEvent it dispatches.
-  initNav();
+  // listens for the module:change CustomEvent it dispatches. The returned handle
+  // exposes setActiveSilent so the hero story (T30) can sync the rail highlight
+  // for its programmatic switches without dispatching module:change (which would
+  // self-interrupt the story).
+  const navHandle = initNav();
 
   // --- engine assembly ------------------------------------------------------
   const state = new SimulationState();
@@ -222,11 +226,23 @@ function boot() {
     }
   }
 
+  // --- hero story choreography (T30, tick-driven) --------------------------
+  // The 30-tick demo narrative. It owns NO timer of its own for the narrative —
+  // app.js fans every tick into heroStory.notifyTick() below. The autoplay gate
+  // (currentTick === heroTimeline.autoplayGateTick, ONCE per load) and the manual
+  // ▶ replay both flow through play(); the epoch loop does NOT replay (the
+  // once-per-load flag lives on the instance and is not reset on epoch wrap).
+  const heroStory = createHeroStory({
+    scheduler, router, dispatcher, state, t,
+    nav: navHandle, // { setActiveSilent } — rail highlight sync without an event
+  });
+
   function onTick(tick) {
     emitSkeletonTick(tick);   // skeleton events → dispatcher.emit
     state.recomputeKpis();    // derive KPIs once per tick (state-first)
     kpiStrip.update(tick);    // T11: full reconcile after state mutation (2B)
     router.tick(tick);        // T13: drive the active module's per-tick update (2B)
+    heroStory.notifyTick(tick); // T30: autoplay gate + tick-driven beat fan-out
   }
 
   scheduler.start(onTick, () => {});
@@ -247,8 +263,8 @@ function boot() {
     state,
     dispatcher,
     d3: null,              // TODO(T28): d3-loader registers the D3 barrel here
-    playHeroStory: null,   // TODO(T30): hero story choreography registers here
-    stopHeroStory: null,   // TODO(T30): hero story stop registers here
+    playHeroStory: () => heroStory.play(),  // T30: manual replay (nav ▶ also calls this)
+    stopHeroStory: () => heroStory.stop(),  // T30: cancel a running story
     setEpochLength: (n) => scheduler.setEpochLength(n),
   };
 

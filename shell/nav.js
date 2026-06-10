@@ -85,7 +85,8 @@ function renderLabels() {
       getLocale() === 'zh-TW' ? 'EN' : '中';
   }
   if (demoBtn) {
-    const label = t('common.desktop_only');
+    // T30: the ▶ button is the manual replay trigger for the hero story.
+    const label = t('hero.play');
     demoBtn.setAttribute('aria-label', label);
     demoBtn.querySelector('.tip').textContent = label;
   }
@@ -112,6 +113,16 @@ function setActive(id) {
   if (changed) {
     window.dispatchEvent(new CustomEvent('module:change', { detail: { id } }));
   }
+}
+
+// T30: move the rail highlight WITHOUT dispatching module:change. The hero story
+// drives module switches through router.set() directly; it calls this to keep the
+// rail in sync so its programmatic switches are NOT mistaken for a user interrupt
+// (which the story cancels on). State-first → idempotent paint, no event.
+function setActiveSilent(id) {
+  if (!buttonsById.has(id)) return;
+  activeId = id;
+  paintActive();
 }
 
 function makeTip() {
@@ -216,12 +227,17 @@ export function initNav(options = {}) {
   localeBtn.style.setProperty('--nav-d', `${80 + MODULES.length * 40}ms`);
   localeBtn.addEventListener('click', toggleLocale);
 
-  // ▶ demo placeholder — disabled until T30.
+  // ▶ demo button — T30: manual replay trigger for the tick-driven hero story.
+  // Enabled (no disabled state); clicking calls window.__SIM.playHeroStory(),
+  // which the hero story registers during boot. Defensive: no-op if not yet wired.
   const demoBtn = buildRailButton({
-    id: 'nav-demo', klass: 'rail-btn-demo', iconSymbol: 'i-play', disabled: true,
+    id: 'nav-demo', klass: 'rail-btn-demo', iconSymbol: 'i-play',
   });
   demoBtn.style.setProperty('--nav-d', `${120 + MODULES.length * 40}ms`);
-  // TODO(T30): wire ▶ to window.__SIM.playHeroStory once the hero story lands.
+  demoBtn.addEventListener('click', () => {
+    const sim = typeof window !== 'undefined' ? window.__SIM : null;
+    if (sim && typeof sim.playHeroStory === 'function') sim.playHeroStory();
+  });
 
   frag.append(themeBtn, localeBtn, demoBtn);
   nav.appendChild(frag);
@@ -240,7 +256,7 @@ export function initNav(options = {}) {
     ? options.initial : MODULES[0].id;
   setActive(initial);
 
-  return { setActive, getActive: () => activeId, modules: MODULES.map((m) => m.id) };
+  return { setActive, setActiveSilent, getActive: () => activeId, modules: MODULES.map((m) => m.id) };
 }
 
 export default { initNav };

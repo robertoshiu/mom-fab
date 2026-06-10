@@ -1,0 +1,40 @@
+T30 Hero Story (tick-driven) — QA summary (port 8530, browse headless)
+
+ACCEPTANCE
+[PASS] Autoplay gate: fresh load auto-played ONCE at scheduler.currentTick === 3
+       (heroTimeline.autoplayGateTick). Recorder captured beats mes@3 -> spc@13
+       -> apc@21 (storyStart 3 + offsets 0/10/18), yield@+25, overview@+30.
+[PASS] 30-tick narrative auto-switches 4 modules MES -> SPC -> APC -> Yield ->
+       overview(=MES). Deterministic event-capture run (storyStart=55) showed:
+       lot.start@55, spc.violation@65 (val 4.92), apc.adjustment@73 (delta -2.3),
+       defect.detected@80 (x0.18 y-0.22), lot.complete@85.
+[PASS] Timeline sourced from scenarios/mom-fab.js heroTimeline (offsets 0/10/18/
+       25/30); SPC defect injection bound to its beat tick (visible: Violation Log
+       TICK 013 WE-1 Chamber pressure value 4.9 Open — see task-30-hero-spc.png).
+[PASS] Key element highlighted per beat via synthesised ctx.focus payload through
+       router.set(module, focus): MES lot row, SPC violation log, APC R2R, Yield
+       defect-type drill.
+[PASS] Topbar shows "▶ Playing demo story…" indicator while active (bilingual,
+       pulse), cleared on finish/stop.
+[PASS] Caption overlay: 0.5s highlight card (step name + one-line note) per beat,
+       i18n hero.step.* / hero.note.*; reduced-motion gate present (no anim).
+[PASS] Replay once-per-load: setEpochLength(40) -> epoch wrap to tick 0 -> NO auto
+       re-fire past gate tick 3 (playing=false at tick 5). Manual nav ▶ (#nav-demo)
+       refires (see task-30-replay-once.txt + indicator returns).
+[PASS] Interrupt: user nav click (ERP) mid-story cancels cleanly — indicator gone,
+       river hero-dim removed, hero-chip tags cleared, no orphan beats
+       (task-30-interrupt.png).
+[PASS] Background river NOT paused (dispatcher keeps emitting); non-story chips
+       de-emphasised via #event-river.hero-dim, restored on stop.
+[PASS] No console errors across full autoplay + replay + interrupt cycles.
+[PASS] No banned API in owned files. setTimeout in hero-story.js is render-only
+       caption timing only (lines 488/506) — narrative is purely tick-driven via
+       notifyTick(); NO setTimeout narrative chain.
+
+NOTES / DEFERRALS
+- Yield beat injects defect.detected (x0.18,y-0.22); the Yield module's existing
+  _onExternalDefect de-dupes a defect whose tick == its own batch tick, so the
+  exact hero coordinate may be folded into the organic batch rather than stored
+  separately. The event still reaches the module (proven) and drives the
+  pareto/wafer-map + focus drill; visual cluster accumulates (state.defects grows
+  through the beat). This is pre-existing Yield-module behaviour, not a regression.

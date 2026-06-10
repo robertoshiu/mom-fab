@@ -155,5 +155,18 @@
   "common.reset": "重置 / Reset",
   "common.close": "關閉 / Close",
   "common.reload": "重新載入 / Reload",
-  "common.desktop_only": "桌面版功能 / Desktop-only feature"
+  "common.desktop_only": "桌面版功能 / Desktop-only feature",
+
+  "hero.play": "播放示範劇本 / Play Demo Story",
+  "hero.playing": "播放示範劇本中… / Playing demo story…",
+  "hero.step.mes": "製造執行 / MES",
+  "hero.step.spc": "統計製程管制 / SPC",
+  "hero.step.apc": "先進製程控制 / APC",
+  "hero.step.yield": "良率管理 / Yield",
+  "hero.step.overview": "總覽 / Overview",
+  "hero.note.mes": "L-042 於微影站投入 / L-042 started at Photolithography",
+  "hero.note.spc": "SPC 違規:腔體壓力 / SPC violation: chamber pressure",
+  "hero.note.apc": "APC 自動調整:壓力 -2.3% / APC adjustment: pressure -2.3%",
+  "hero.note.yield": "壓力異常缺陷密度上升 / Pressure excursion defect density up",
+  "hero.note.overview": "L-042 已標記為已復原 / L-042 marked Recovered"
 }
