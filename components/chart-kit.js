@@ -85,7 +85,12 @@ function createChart(kind, config = {}) {
     const rect = container.getBoundingClientRect();
     const W = Math.max(rect.width || container.clientWidth || 320, 80);
     const H = Math.max(rect.height || container.clientHeight || 200, 60);
-    return { W, H, iw: W - margin.left - margin.right, ih: H - margin.top - margin.bottom };
+    // Clamp inner dims to >=0 at the source: on a first cold mount the container
+    // can report a height smaller than the margins, making iw/ih transiently
+    // negative and producing negative SVG rect heights.
+    const iw = Math.max(0, W - margin.left - margin.right);
+    const ih = Math.max(0, H - margin.top - margin.bottom);
+    return { W, H, iw, ih };
   }
 
   // ---- state overlays (loading skeleton / empty / inherit partial) ----
@@ -175,9 +180,9 @@ function createChart(kind, config = {}) {
     if (config.cl != null && config.sigma != null) {
       [1, 2].forEach((k) => {
         g.append('rect')
-          .attr('x', 0).attr('width', iw)
+          .attr('x', 0).attr('width', Math.max(0, iw))
           .attr('y', ys(config.cl + k * config.sigma))
-          .attr('height', ys(config.cl - k * config.sigma) - ys(config.cl + k * config.sigma))
+          .attr('height', Math.max(0, ys(config.cl - k * config.sigma) - ys(config.cl + k * config.sigma)))
           .attr('fill', 'var(--accent)').attr('opacity', 0.025);
       });
     }
@@ -232,7 +237,7 @@ function createChart(kind, config = {}) {
     gridLines(ys, iw);
     g.selectAll('rect.ck-bar').data(data).join('rect')
       .attr('class', 'ck-bar')
-      .attr('x', (d) => xs(d.label)).attr('width', xs.bandwidth())
+      .attr('x', (d) => xs(d.label)).attr('width', Math.max(0, xs.bandwidth()))
       .attr('y', ih).attr('height', 0)
       .attr('fill', config.color || 'var(--accent)').attr('opacity', 0.85)
       .on('mouseenter', function (ev, d) {
@@ -240,7 +245,7 @@ function createChart(kind, config = {}) {
       })
       .on('mouseleave', hideTip)
       .transition().duration(TRANSITION_MS)
-      .attr('y', (d) => ys(d.value)).attr('height', (d) => ih - ys(d.value));
+      .attr('y', (d) => ys(d.value)).attr('height', (d) => Math.max(0, ih - ys(d.value)));
     xs.domain().forEach((label) => axisText(xs(label) + xs.bandwidth() / 2, ih + 18, label));
   }
 
@@ -255,13 +260,13 @@ function createChart(kind, config = {}) {
     const cap = config.partialCapacity || tMax;
     const xs = d3.scaleLinear().domain([0, Math.max(cap, tMax)]).range([0, iw]);
     g.selectAll('rect.ck-grow').data(rowKeys).join('rect')
-      .attr('class', 'ck-grow').attr('x', 0).attr('width', iw)
-      .attr('y', (d) => ys(d)).attr('height', ys.bandwidth())
+      .attr('class', 'ck-grow').attr('x', 0).attr('width', Math.max(0, iw))
+      .attr('y', (d) => ys(d)).attr('height', Math.max(0, ys.bandwidth()))
       .attr('fill', 'var(--bg-inset)').attr('opacity', 0.4);
     g.selectAll('rect.ck-block').data(data).join('rect')
       .attr('class', 'ck-block')
       .attr('x', (d) => xs(d.start)).attr('y', (d) => ys(d.row) + ys.bandwidth() * 0.15)
-      .attr('width', 0).attr('height', ys.bandwidth() * 0.7)
+      .attr('width', 0).attr('height', Math.max(0, ys.bandwidth() * 0.7))
       .attr('rx', 1)
       .attr('fill', (d) => statusColor(d.status))
       .on('mouseenter', function (ev, d) {

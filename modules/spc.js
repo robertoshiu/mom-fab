@@ -420,9 +420,10 @@ const spc = {
     side.id = 'spc-rules';
     side.className = 'panel';
     side.innerHTML =
-      `<div class="panel-head"><span class="label">Western Electric Rules</span></div>` +
+      `<div class="panel-head"><span class="label" data-i18n="spc.we_rules">${t('spc.we_rules')}</span></div>` +
       `<div class="panel-body"></div>`;
     root.appendChild(side);
+    this._weRulesLabel = side.querySelector('.panel-head .label');
     const rulesBody = side.querySelector('.panel-body');
     this._ruleRows = [];
     RULE_KEYS.forEach((key, idx) => {
@@ -522,6 +523,9 @@ const spc = {
 
     // tick meter
     if (this._tickmeter) this._tickmeter.textContent = String(this._lastTick).padStart(3, '0');
+
+    // WE rules panel title — re-read through i18n every render (locale toggle)
+    if (this._weRulesLabel) this._weRulesLabel.textContent = t('spc.we_rules');
 
     // ERROR state: state store missing → inline boot-vocabulary banner.
     if (!ctx.state || typeof ctx.state.addSpcSample !== 'function') {

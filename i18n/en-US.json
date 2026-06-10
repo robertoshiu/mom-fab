@@ -82,6 +82,7 @@
   "spc.rule_6": "Rule 6: 4 of 5 beyond 1σ / 規則六:5 點中 4 點超 1σ",
   "spc.rule_7": "Rule 7: 15 points within 1σ / 規則七:連續 15 點在 1σ 內",
   "spc.rule_8": "Rule 8: 8 points beyond 1σ / 規則八:連續 8 點皆超 1σ",
+  "spc.we_rules": "WE Rules / Western Electric 規則",
   "spc.action.reset": "Reset / 重置",
 
   "apc.title": "Advanced Process Control / 先進製程控制",
