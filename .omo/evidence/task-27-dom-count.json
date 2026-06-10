@@ -1,0 +1,23 @@
+{
+  "task": "T27 DOM budget (< 3000 nodes on every module)",
+  "date": "2026-06-11",
+  "method": "browse js document.querySelectorAll('*').length per module, after ~700ms settle each; MES also sampled at tick ~56 with lots fully populated (heaviest case).",
+  "budget_nodes": 3000,
+  "per_module": {
+    "mes": 1326,
+    "aps": 635,
+    "erp": 251,
+    "spc": 342,
+    "apc": 433,
+    "wip": 656,
+    "scm": 570,
+    "recipe": 279,
+    "yield": 252
+  },
+  "max_module": "mes",
+  "max_nodes": 1326,
+  "max_nodes_note": "MES lot table is the heaviest module; 102 rows at tick ~56, total document 1326 nodes (includes persistent topbar/nav/kpi-strip/event-river chrome).",
+  "after_20_module_switches_back_to_mes": 1333,
+  "result": "PASS",
+  "verdict": "Every module is well under the 3000-node budget; peak document node count is 1326 (44% of budget)."
+}

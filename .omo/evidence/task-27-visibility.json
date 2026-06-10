@@ -1,0 +1,29 @@
+{
+  "task": "T27 item 4 — visibility catch-up (M4 skip-not-queue) + item 5 wall-clock catch-up",
+  "date": "2026-06-11",
+  "method": "From the page, paused the live interval, temporarily wrapped scheduler._emitTick with a counter (instrumentation removed after the test), rewound epochStartTime by ~12s of simulated wall-clock, then dispatched a single onVisibilityChange() while the page is visible. Asserted exactly ONE emit and a single forward jump to the wall-clock target tick (no burst replay of intervening ticks).",
+  "skip_not_queue_test": {
+    "tick_before": 2,
+    "simulated_elapsed_ms": 12000,
+    "expected_target_tick": 12,
+    "tick_after": 12,
+    "emit_calls": 1,
+    "emit_log": [12],
+    "single_jump": true,
+    "no_burst": true,
+    "intervening_ticks_3_to_11_replayed": false,
+    "result": "PASS"
+  },
+  "handler_wiring": {
+    "visibilitychange_handler_registered": true,
+    "note": "scheduler._visibilityHandler is a live function bound via document.addEventListener('visibilitychange', ...). The real tab-background -> foreground transition therefore routes through onVisibilityChange(), which computes targetTick = floor((performance.now()-epochStartTime)/1000) % epochLength and emits once.",
+    "hidden_guard": "onVisibilityChange() early-returns when document.visibilityState === 'hidden' (and when _paused / _inEpochReset), so no tick fires while backgrounded — only the single forward catch-up on return to foreground."
+  },
+  "item5_tab_background_raf_pause": {
+    "nature": "browser-native (RAF auto-pauses in background tabs); tick advance uses setInterval(1000ms) + performance.now() epochStartTime, never RAF, so simulation time is reconciled from wall clock on return.",
+    "verified": "wall-clock catch-up = the single-jump result above (tick reconciled to elapsed wall time in one emit).",
+    "result": "PASS"
+  },
+  "instrumentation_cleanup": "scheduler._emitTick restored to original; __emitLog/__origEmit deleted; scheduler stop()+reset to epochLength=180 after test.",
+  "verdict": "PASS — single skip-not-queue jump to the wall-clock target tick, no tick avalanche; visibilitychange handler is wired for the native background/foreground path."
+}

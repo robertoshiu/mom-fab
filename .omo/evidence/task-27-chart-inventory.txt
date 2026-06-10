@@ -1,0 +1,59 @@
+T27 Performance Pass — Chart Point-Count Inventory (Canvas >200pt threshold)
+===========================================================================
+Method: static read of every chart-kit factory call across the 9 modules +
+        verification of sliding-window / partialCapacity caps, plus a live
+        DOM-render count at tick ~56 (lots fully populated). The >200-point
+        rule applies per-chart (one SVG / one drawn series); a chart whose
+        single rendered series can exceed 200 points must move to Canvas.
+
+Per-chart rendered-point ceiling (the cap is enforced in code, not just visual):
+---------------------------------------------------------------------------
+MODULE  | CHART (factory)            | CAP CONST              | MAX PTS | SVG/CANVAS | >200?
+--------|---------------------------|------------------------|---------|------------|------
+MES     | lot lifecycle Gantt       | per-lot step blocks    |  ~5-12  | SVG        | no
+        | (createGantt)             | (single selected lot)  |         |            |
+APS     | dispatch Gantt            | GANTT_ROWS=100 (1 blk  |  ~100   | SVG        | no
+        | (createGantt)             |  per row, rects)       |         |            |
+        | equipment-load Heatmap    | HEAT_COLS*HEAT_ROWS    |  =100   | SVG        | no
+        | (createHeatmap)           |  =10*10                |         |            |
+ERP     | (no chart-kit; BOM tree + |  —                     |   —     | DOM        | no
+        |  5-col kanban, DOM only)  |                        |         |            |
+SPC     | X-bar control chart       | WINDOW=50              |  =50    | SVG        | no
+        | (createLineChart)         |                        |         |            |
+        | R chart (createLineChart) | WINDOW=50              |  =50    | SVG        | no
+APC     | R2R adjustment line       | R2R_WINDOW=30          |  =30    | SVG        | no
+        | (createLineChart)         |                        |         |            |
+        | FDC multi-line: 4 SEPARATE| FDC_WINDOW=50 EACH     |  =50    | SVG (x4)   | no
+        | charts, 1 per FDC_PARAM   | (4 params: pressure,   |  (per   |            |
+        | (createLineChart x4)      |  rfpower, gasflow,temp)|  chart) |            |
+WIP     | live lot Gantt            | GANTT_MAX_ROWS=        |  ~100   | SVG        | no
+        | (createGantt)             |  LOT_COUNT=100         |         |            |
+        | flow sparkline/diagram    | per-group history,     |  small  | SVG/DOM    | no
+        |                           |  8 tool-group nodes    |         |            |
+SCM     | (no chart-kit; supplier   |  —                     |   —     | DOM        | no
+        |  cards + in-transit table)|                        |         |            |
+Recipe  | (no chart-kit; param table|  —                     |   —     | DOM        | no
+        |  + version diff, DOM only)|                        |         |            |
+Yield   | Pareto bar (createBarChart| defect-type count      |  <12    | SVG        | no
+        |                           |  (few bars)            |         |            |
+        | yield trend line          | trend window (<=50)    |  <=50   | SVG        | no
+        | (createLineChart)         |                        |         |            |
+        | WAFER MAP                 | per-wafer defect dots  |  many   | CANVAS     | n/a
+        | (_drawWafer, 2d context)  | (density)              |         | (already)  |
+---------------------------------------------------------------------------
+
+FINDINGS
+--------
+* The brief's "FDC 5x50" is actually 4 params x 50 = 200 pts TOTAL, but each of
+  the 4 FDC parameters is its OWN createLineChart SVG capped at FDC_WINDOW=50.
+  No single chart series renders >200 points.
+* SPC sliding window = 50 (WINDOW); X-bar and R are separate 50-pt charts.
+* The single high-DENSITY visual in the app (Yield wafer map, per-wafer defect
+  dots) is ALREADY a module-local Canvas (yield.js _drawWafer / getContext('2d')).
+* APS/WIP Gantts and the APS heatmap top out at ~100 SVG rects (rows/cells),
+  NOT high-density scatter — far below the 200-element concern and well within
+  the global <3000-node DOM budget.
+
+VERDICT: No chart exceeds the 200-point Canvas threshold. The only high-density
+         surface (wafer map) is already Canvas. NO canvas migration required in
+         components/chart-kit.js. chart-kit left SVG-only by design (PASS).
