@@ -86,16 +86,23 @@ export class Router {
     this._lastTick = 0;              // remembered so a freshly-init'd module catches up
 
     // ctx handed to every module. `router` is THIS so modules can navigate.
-    this._ctx = { state, dispatcher, t, router: this };
+    // `focus` is a ONE-SHOT cross-cutting payload (T24): when navigation arrives
+    // from an event-river chip, the router stamps the chip's {type, payload, seq,
+    // lotId, …} here before the target module mounts. Modules read ctx.focus in
+    // init/update to highlight the related entity (e.g. MES selects the chip's
+    // lot row, SPC scrolls to the violation). The router clears it after the
+    // freshly-mounted module's first update so a stale focus never re-applies on
+    // a later locale-driven refreshActive() / per-tick update.
+    this._ctx = { state, dispatcher, t, router: this, focus: null };
 
     this._onModuleChange = (e) => {
       const id = e && e.detail && e.detail.id;
-      if (id) this.set(id);
+      if (id) this.set(id); // nav clicks carry no focus payload
     };
     this._onRiverNavigate = (e) => {
       const d = (e && e.detail) || {};
       const target = d.module || eventRouting[d.type] || null;
-      if (target) this.set(target);
+      if (target) this.set(target, this._focusFromDetail(d));
     };
   }
 
@@ -123,6 +130,38 @@ export class Router {
 
   getActive() {
     return this._currentId;
+  }
+
+  // Normalise a river:navigate detail into a one-shot focus payload modules can
+  // consume. The payload carries whatever the originating chip surfaced; we also
+  // hoist the most common entity ids to the top level so modules don't all have
+  // to know every producer's payload shape.
+  _focusFromDetail(d) {
+    const p = (d && d.payload) || {};
+    return {
+      type: d && d.type,
+      seq: d && d.seq,
+      payload: p,
+      lotId: p.lotId || p.lot || null,
+      equipmentId: p.equipmentId || p.equipment || null,
+      recipeId: p.recipeId || null,
+      poId: p.poId || p.id || null,
+      tick: p.tick != null ? p.tick : null,
+    };
+  }
+
+  // Expose the live one-shot focus for modules whose init/update read ctx.focus.
+  getFocus() {
+    return this._focus || null;
+  }
+
+  // Public entry for a navigation intent carrying an event detail (the river's
+  // onNavigate bridges here because its bubbling CustomEvent does not reach the
+  // router's #content container — they are siblings in the shell, not nested).
+  navigateFromEvent(detail) {
+    const d = detail || {};
+    const target = d.module || eventRouting[d.type] || null;
+    if (target) this.set(target, this._focusFromDetail(d));
   }
 
   // Best-effort interrupt of any in-flight d3 transitions on the container so
@@ -196,12 +235,18 @@ export class Router {
   // Switch to a module. Final-wins under rapid switching: each call bumps the
   // switch token; any async continuation that finds itself stale aborts before
   // mutating the DOM, so the last set() within a burst is the only one that mounts.
-  async set(id) {
+  async set(id, focus) {
     if (!this._importers.has(id)) {
       console.warn('[router] set() for unregistered module:', id);
       return;
     }
     const seq = ++this._switchSeq;
+    // Stamp the one-shot focus payload for this switch. If the same module is
+    // re-targeted (e.g. an spc.violation chip while SPC is already active) we
+    // still want it to re-focus, so set() always (re)writes ctx.focus — even to
+    // null when navigation carried no payload.
+    this._focus = focus || null;
+    this._ctx.focus = this._focus;
 
     // (1) fade the current view out (0.2s) — but only if there is one to fade.
     if (this._view) {
@@ -261,7 +306,12 @@ export class Router {
     this._currentId = id;
 
     // catch the freshly-mounted module up to the current tick before fading in.
+    // ctx.focus is still set here so this first update can honour it; we clear
+    // it immediately afterwards so subsequent per-tick updates / refreshActive()
+    // never re-apply a stale focus.
     this._safeUpdate(this._lastTick);
+    this._focus = null;
+    this._ctx.focus = null;
 
     // fade in on the next frame so the browser registers the faded start state.
     this._raf(() => {
@@ -282,6 +332,12 @@ export class Router {
     this._safeUpdate(this._lastTick);
   }
 
+  // Error isolation (T24 #4): a throwing module update() must never break the
+  // tick loop — mirror of the dispatcher's per-subscriber try/catch in emit().
+  // The controller's onTick calls router.tick() last; if this threw, the tick
+  // would still complete (state/KPI already mutated), but the next tick's
+  // scheduler callback would surface an uncaught error. We swallow + warn so the
+  // heartbeat (and every other module's future update) survives a bad module.
   _safeUpdate(t) {
     const mod = this._current;
     if (!mod || typeof mod.update !== 'function' || !this._view) return;

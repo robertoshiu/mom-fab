@@ -375,10 +375,20 @@ export class EventRiver {
     if (!chip || !this.container.contains(chip)) return;
     const type = chip.dataset.eventType;
     const module = chip.dataset.module || eventRouting[type] || null;
-    const detail = { module, type, seq: Number(chip.dataset.seq) };
+    const seq = Number(chip.dataset.seq);
 
-    // navigation intent — event detail only. The SPA router (T13) listens for
-    // this CustomEvent on the container; until then it is a no-op carrier.
+    // T24: carry the originating event's PAYLOAD in the navigation intent so the
+    // target module can highlight the related entity (e.g. a lot.start chip
+    // hands {lotId} to MES → MES selects that lot's row). We resolve the payload
+    // from the in-memory store by seq (the chip itself stays text-only).
+    let payload = null;
+    for (let i = this._events.length - 1; i >= 0; i--) {
+      if (this._events[i].seq === seq) { payload = this._events[i].payload; break; }
+    }
+    const detail = { module, type, seq, payload: payload || {} };
+
+    // navigation intent. The SPA router (T13) listens for this CustomEvent on the
+    // container and routes via EVENT_ROUTING + applies the focus payload (T24).
     const navEvent = new CustomEvent('river:navigate', { detail, bubbles: true });
     chip.dispatchEvent(navEvent);
     if (this.onNavigate && module) this.onNavigate(module, detail);

@@ -258,10 +258,21 @@ const mes = {
     // mark the view dirty so the next update() (or an immediate light patch)
     // reflects the change. We do NOT double-write status (app.js owns that).
     this._dirty = true;
+    this._recipeRev = null; // I2: latest signed-off recipe (recipeId · vN)
     ctx.dispatcher.subscribeAll(this.id, {
       'lot.start': () => { this._dirty = true; },
       'lot.complete': () => { this._dirty = true; },
       'step.transition': () => { this._dirty = true; },
+      // I2 chain: a recipe sign-off (Recipe module → recipe.changed) updates the
+      // route's current-step recipe. State-first: stash the new revision; the
+      // next update() stamps it into the selected lot's Gantt meta (the visible
+      // "current step recipe" indicator). Idempotent — re-reads on every render.
+      'recipe.changed': (p) => {
+        this._recipeRev = p && p.recipeId
+          ? p.recipeId + ' · v' + (p.version != null ? p.version : '?')
+          : null;
+        this._dirty = true;
+      },
     });
 
     // --- build the Gantt (chart-kit factory) -------------------------------
@@ -339,6 +350,14 @@ const mes = {
     const { state } = ctx;
     const now = this._lastTick;
 
+    // I2 chain: pick up a recipe sign-off that landed while MES was unmounted
+    // (app.js's recipe-bridge persists the latest onto shared state). The live
+    // subscription handles changes while MES is on screen; this covers the rest.
+    if (!this._recipeRev && state && state.lastRecipeChange && state.lastRecipeChange.recipeId) {
+      const rc = state.lastRecipeChange;
+      this._recipeRev = rc.recipeId + ' · v' + (rc.version != null ? rc.version : '?');
+    }
+
     // refresh engraved labels + button labels (locale change, 6A)
     if (this._ganttLabel) this._ganttLabel.textContent = t('wip.gantt');
 
@@ -368,6 +387,17 @@ const mes = {
 
     this._ensureTable(ctx);
     this._table.update({ rows });
+
+    // T24 cross-cutting focus: a lot.start / lot.complete / step.transition chip
+    // (or any nav carrying a lotId) selects + highlights that lot's row. One-shot
+    // (router clears ctx.focus after this first update), so it never re-fires on
+    // a later per-tick reconcile. We only honour it if the lot is actually shown.
+    const focus = ctx.focus;
+    if (focus && focus.lotId && this._statusByLot.has(focus.lotId)) {
+      this._selectedLotId = focus.lotId;
+      this._scrollSelectedIntoView = true;
+    }
+
     this._reselectRow();
 
     // table meta line
@@ -480,8 +510,14 @@ const mes = {
       const firstCell = tr.querySelector('td');
       if (firstCell && firstCell.textContent === this._selectedLotId) {
         tr.classList.add('mes-row-selected');
+        // T24 focus: bring a chip-targeted row into view (virtual table may have
+        // it off-screen). One-shot — cleared after we honour it.
+        if (this._scrollSelectedIntoView && typeof tr.scrollIntoView === 'function') {
+          try { tr.scrollIntoView({ block: 'nearest' }); } catch (_) { /* defensive */ }
+        }
       }
     });
+    this._scrollSelectedIntoView = false;
   },
 
   // Build the selected lot's lifecycle Gantt from lot.route + skeleton events.
@@ -544,8 +580,11 @@ const mes = {
       this._ganttLabel.textContent = `${t('wip.gantt')} — ${lotId}`;
     }
     if (this._ganttMeta) {
+      // I2: when a recipe has been signed off, surface its revision next to the
+      // route so the "current-step recipe" is visibly current.
+      const rev = this._recipeRev ? ` · ${this._recipeRev}` : '';
       this._ganttMeta.textContent =
-        `${lot.product} · ${data.length} steps · tick ${String(tick).padStart(3, '0')}`;
+        `${lot.product} · ${data.length} steps · tick ${String(tick).padStart(3, '0')}${rev}`;
     }
   },
 

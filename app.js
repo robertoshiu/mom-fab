@@ -67,11 +67,48 @@ function boot() {
   // per-tick state.recomputeKpis() sees lots transition queued→running→complete.
   // Without this, every lot keeps an undefined status (counted as WIP forever)
   // and the KPI strip is frozen at {wip:100, throughput:0, yield:100, ...}.
+  // T24 cross-cutting fix: a user override (MES Hold/Scrap/Complete) is
+  // authoritative and must survive subsequent skeleton lifecycle events for the
+  // same lot — otherwise a Hold is silently clobbered back to running by the
+  // next step.transition, and WIP/KPIs lose it. Guard each status write behind
+  // the override map (hold lasts until its `until` tick; scrap/complete are
+  // terminal). The producing modules read the override directly for the view.
+  const setStatusUnlessOverridden = (lotId, status, tick) => {
+    const o = state.suppressOverrides.get(lotId);
+    if (o) {
+      // terminal overrides always win; a hold wins until its expiry tick.
+      if (o.status !== 'hold') return;
+      if (tick == null || tick < o.until) return;
+      // hold expired → fall through and let the lifecycle event resume status.
+    }
+    state.updateLot(lotId, { status });
+  };
   dispatcher.subscribeAll('lot-lifecycle', {
-    'lot.start': (p) => state.updateLot(p.lotId, { status: 'running' }),
-    'step.transition': (p) => state.updateLot(p.lotId, { status: 'running' }),
-    'material.in_transit': (p) => state.updateLot(p.lotId, { status: 'in_process' }),
-    'lot.complete': (p) => state.updateLot(p.lotId, { status: 'complete' }),
+    'lot.start': (p) => setStatusUnlessOverridden(p.lotId, 'running', scheduler.currentTick),
+    'step.transition': (p) => setStatusUnlessOverridden(p.lotId, 'running', scheduler.currentTick),
+    'material.in_transit': (p) => setStatusUnlessOverridden(p.lotId, 'in_process', scheduler.currentTick),
+    'lot.complete': (p) => setStatusUnlessOverridden(p.lotId, 'complete', scheduler.currentTick),
+  });
+
+  // T24 I2 chain persistence: a recipe.changed (Recipe sign-off) is emitted while
+  // the Recipe module is mounted — APC / MES are usually NOT mounted then, so a
+  // per-mount subscription misses it. Persist the latest signed recipe + a
+  // monotonic counter onto the shared state so APC (baseline shift) and MES
+  // (current-step recipe) re-derive it the next time they mount/update, keeping
+  // the cross-module chain live regardless of which module is on screen.
+  state.recipeChanges = 0;
+  state.lastRecipeChange = null;
+  dispatcher.subscribeAll('recipe-bridge', {
+    'recipe.changed': (p) => {
+      state.recipeChanges = (state.recipeChanges || 0) + 1;
+      state.lastRecipeChange = {
+        recipeId: p && p.recipeId,
+        product: p && p.product,
+        version: p && p.version,
+        signer: p && p.signer,
+        tick: scheduler.currentTick,
+      };
+    },
   });
 
   // --- main-content SPA router (T13) ---------------------------------------
@@ -86,6 +123,15 @@ function boot() {
     dispatcher,
     t,
   });
+  // T24 integration fix: the event river lives in the topbar, NOT inside the
+  // router's #content container, so its bubbling `river:navigate` CustomEvent
+  // never reaches the router's container listener. Bridge the two explicitly via
+  // the river's onNavigate callback → router.set(module, focus). The focus
+  // payload (built from EVENT_ROUTING + the chip's event payload) lets the target
+  // module highlight the related entity (e.g. lot.start chip → MES lot row).
+  eventRiver.onNavigate = (module, detail) => {
+    router.navigateFromEvent(detail);
+  };
   // 6A: locale change re-runs the active module's full reconcile so SVG/canvas
   // text re-pulls t(key) (the [data-i18n] DOM scan can't reach inside charts).
   onLocaleChange(() => router.refreshActive());

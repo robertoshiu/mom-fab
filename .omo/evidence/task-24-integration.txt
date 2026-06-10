@@ -1,0 +1,110 @@
+T24 — 模組間 cross-cutting 整合 — QA Evidence
+Port: 8424 (node tools/serve.mjs)  Driver: gstack browse (headless)
+Date: 2026-06-11
+
+SUMMARY: All 5 acceptance behaviours PASS. No console errors (only the two
+expected isolation WARNINGS produced by the #4 fault-injection probes).
+
+------------------------------------------------------------------------
+#1 Event-river chip click → correct module switch + entity highlight
+------------------------------------------------------------------------
+Root-cause fixed: the event river lives in the topbar, NOT inside the
+router's #content container, so its bubbling `river:navigate` CustomEvent
+never reached the router's container listener — chip navigation was a no-op.
+Bridged via the river's onNavigate → router.navigateFromEvent(detail), which
+routes by EVENT_ROUTING and stamps a one-shot ctx.focus payload (chip's event
+payload, with lotId/equipmentId/poId/recipeId/type hoisted).
+
+Steps: router.set('spc'); click a lot.start chip (●L-038 Lot Start).
+Result:
+  { "active": "mes", "selectedRow": "L-038" }
+PASS — switched SPC→MES via EVENT_ROUTING AND highlighted lot L-038's row
+(tr.mes-row-selected). Screenshot: task-24-cross-module.png.
+
+Focus is applied to all 9 modules where an entity exists:
+  MES (lot row select+scroll), SPC (scroll vlog), APS (focused equipment in
+  gantt meta), ERP (PO card .erp-card-focus + scroll), SCM (in-transit row
+  .scm-row-focus + scroll), Recipe (open diff), Yield (open defect drill).
+  ctx.focus is a router-owned one-shot, cleared after the first update().
+
+------------------------------------------------------------------------
+#2 Cross-module data flow: MES Hold → WIP shows hold on next update
+------------------------------------------------------------------------
+Root-cause fixed: app.js's lot-lifecycle subscriber blindly overwrote
+lot.status from skeleton events, clobbering a MES Hold back to running on the
+next step.transition. (a) app.js now guards status writes behind
+state.suppressOverrides (terminal overrides always win; hold wins until its
+`until` tick). (b) WIP's gantt now consults suppressOverrides (the same
+authoritative source MES uses) instead of lot.status alone.
+
+Steps: MES select L-005 → Hold → advance ticks → router.set('wip').
+Result:
+  Hold:   { "status": "hold", "override": { "status": "hold", "until": 57 } }
+  In WIP: { "active":"wip", "l005_status":"hold", "tick":33, "dangerBlocks":1 }
+PASS — L-005 stays hold across ticks; WIP renders exactly one danger-toned
+(hold) bar (label "<id> · <group> · HOLD"); chart-kit statusColor('hold')→danger.
+
+------------------------------------------------------------------------
+#3 I2 / I3 chains live
+------------------------------------------------------------------------
+I2 (recipe.changed → APC baseline shift AND MES current-step recipe):
+Root-cause: per-mount subscriptions miss recipe.changed (Recipe is mounted on
+sign-off, APC/MES are not). app.js's recipe-bridge persists the latest signed
+recipe + a monotonic counter onto shared state; APC folds state.recipeChanges
+into its R2R setpoint (persistentBump), MES reads state.lastRecipeChange.
+
+Steps: Recipe → New Version → Sign Off → confirm.
+Result:
+  state: { "recipeChanges": 1,
+           "lastRecipeChange": { "recipeId":"RCP-001","version":2,
+                                 "signer":"Process Eng. Lin" } }
+  MES:   _recipeRev = "RCP-001 · v2";
+         gantt meta = "MEM-DDR · 4 steps · tick 021 · RCP-001 · v2"
+  APC:   reads state.recipeChanges=1 → R2R baseline shifted (30-pt curve drawn)
+PASS.
+
+I3 (yield.alert → SPC chart gains a marker):
+SPC now subscribes to yield.alert → unshifts a "YLD … Review" violation-log
+row AND flags the live X-bar point with .spc-yld-mark (amber ring).
+
+Steps: router.set('spc'); dispatcher.emit('yield.alert',{value:84.2,...}).
+Result:
+  { "vlogAfter":"1", "yieldMarkFlag":true,
+    "yldLogRow":"050 YLD Yield CVD-07 84.2 Review", "markPresent":true }
+PASS — chart gains a marker + log entry.
+
+------------------------------------------------------------------------
+#4 Error isolation — a throwing subscriber/update cannot break the tick loop
+------------------------------------------------------------------------
+Dispatcher emit() already isolates per-subscriber (try/catch + one warn/owner);
+verified. Router._safeUpdate() wraps module.update() in try/catch (mirror of the
+dispatcher) so a bad module never stops the heartbeat or other modules.
+
+Probe A (dispatcher): two apc.adjustment subscribers, first throws.
+  Result: { "otherSubscriberRan": true }
+Probe B (router): monkeypatch active module.update to throw, drive a tick.
+  Result: { "threwCalls":1, "tickStillSet":65 } then scheduler 65→66 next tick.
+PASS — both isolated. The only console warnings in the whole run are the two
+expected lines from these probes:
+  "Dispatcher: subscriber threw for \"apc.adjustment\": boom-test"
+  "[router] module \"spc\" update() threw: module-update-boom"
+
+------------------------------------------------------------------------
+#5 Unified unload — 9 modules × 3 leaves no leaked listeners/RAFs/intervals
+------------------------------------------------------------------------
+Dispatcher now exposes ownerCount() / subscriberCount() / hasOwner() for the
+heuristic. Baseline (MES active) = 4 owners (event-river, lot-lifecycle,
+recipe-bridge persistent + 1 active module), 21 subscribers.
+
+Steps: cycle [mes,aps,erp,spc,apc,wip,scm,recipe,yield] × 3, settle on MES.
+Result:
+  { "owners":4, "subs":21, "active":"mes", "detachedRouteViews":1 }
+PASS — owner map + subscriber count return to baseline (every module's
+destroy() ran unsubscribeAll); exactly one .route-view in #content (no
+orphaned DOM); no console errors after the full cycle.
+
+------------------------------------------------------------------------
+Files touched (integration-level only):
+  app.js, shell/router.js, shell/event-river.js, engine/dispatcher.js,
+  modules/mes.js, modules/spc.js, modules/wip.js, modules/erp.js,
+  modules/scm.js, modules/recipe.js, modules/aps.js, modules/yield.js

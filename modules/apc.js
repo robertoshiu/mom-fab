@@ -419,7 +419,13 @@ const apc = {
 
     // the absolute run index of the oldest visible run (sliding window)
     const startRun = Math.max(0, arrived - R2R_WINDOW);
-    const recipeBump = this._recipeBump || 0;
+    // I2 baseline shift: combine this mount's live recipe.changed count with the
+    // persistent count on shared state (set by app.js's recipe-bridge) so the
+    // controller setpoint reflects recipe sign-offs that happened while APC was
+    // unmounted — the baseline stays shifted whenever the user returns to APC.
+    const persistentBump =
+      (this._ctx && this._ctx.state && this._ctx.state.recipeChanges) || 0;
+    const recipeBump = (this._recipeBump || 0) + persistentBump;
 
     // measured disturbance stream — shared across controllers (so only the
     // controller math differs). Derived per absolute run index for stability.

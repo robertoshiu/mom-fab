@@ -384,6 +384,12 @@ const erp = {
 
     // meta count
     this._kbMeta.textContent = String(this._pos.length);
+
+    // T24 cross-cutting focus: a po.received chip (or any nav carrying a poId)
+    // highlights that PO card. One-shot (router clears ctx.focus after this
+    // first update) so it never re-applies on a later per-tick reconcile.
+    const focus = ctx.focus;
+    if (focus && focus.poId) this._focusCard(focus.poId);
   },
 
   // ERROR is latched only by an explicit (simulated) failure; we never inject
@@ -548,6 +554,20 @@ const erp = {
     void t;
   },
 
+  // T24: highlight + scroll a focused PO card (cross-module navigation target).
+  _focusCard(poId) {
+    if (!this._kbBody) return;
+    const all = this._kbBody.querySelectorAll('.erp-card');
+    all.forEach((c) => c.classList.remove('erp-card-focus'));
+    const card = this._kbBody.querySelector('.erp-card[data-po="' + (window.CSS && CSS.escape ? CSS.escape(poId) : poId) + '"]');
+    if (card) {
+      card.classList.add('erp-card-focus');
+      if (typeof card.scrollIntoView === 'function') {
+        try { card.scrollIntoView({ block: 'nearest' }); } catch (_) { /* defensive */ }
+      }
+    }
+  },
+
   _skeletonColumns() {
     const wrap = document.createElement('div');
     wrap.className = 'erp-skel';
@@ -682,6 +702,8 @@ const ERP_CSS = `
 .erp-card-qty { color: var(--text-secondary); font-size: var(--fs-caption); }
 .erp-card-prod { color: var(--text-primary); font-size: var(--fs-caption); }
 .erp-card-acts { display: flex; gap: var(--sp-1); margin-top: var(--sp-1); }
+/* T24 cross-module focus highlight: cyan-edged card (live navigation target) */
+.erp-card.erp-card-focus { border-color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); }
 .erp-card-acts .btn { padding: 1px var(--sp-2); font-size: var(--fs-caption); }
 
 /* token-timed slide-in when a card moves columns */

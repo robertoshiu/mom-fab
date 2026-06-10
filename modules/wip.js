@@ -676,7 +676,9 @@ const wip = {
     // against the current tick, so the bar is throttle-proof (does not depend on
     // every per-tick skeleton event having been emitted in a backgrounded tab).
     // A lot the dispatcher has marked complete is shown as a full done bar.
-    const lots = (this._ctx && this._ctx.state && this._ctx.state.lots) || new Map();
+    const state = (this._ctx && this._ctx.state) || null;
+    const lots = (state && state.lots) || new Map();
+    const overrides = (state && state.suppressOverrides) || new Map();
     const tick = this._lastTick;
 
     const rows = [];
@@ -691,8 +693,17 @@ const wip = {
       if (this._filterProduct !== 'ALL' && lot.product !== this._filterProduct) continue;
       if (this._filterGroup !== 'ALL' && group !== this._filterGroup) continue;
 
-      const status = lot.status;
+      // Cross-module sync (T24 #2): the AUTHORITATIVE user hold/scrap lives in
+      // state.suppressOverrides — app.js's lot-lifecycle subscriber overwrites
+      // lot.status from skeleton events, so reading lot.status alone would lose a
+      // MES Hold the moment the next step.transition lands. Consult the override
+      // map (same precedence MES uses) so a held lot reliably shows HOLD here.
+      const override = overrides.get(id);
+      const heldOverride = override && override.status === 'hold' && tick < override.until;
+      const scrapOverride = override && override.status === 'scrap';
+      const status = scrapOverride ? 'scrap' : (heldOverride ? 'hold' : lot.status);
       const done = status === 'complete' || status === 'shipped' || status === 'scrap';
+      const held = status === 'hold';
       const startTick = lot.startTick || 0;
       const started = startTick <= tick;
       // Deterministic duration proxy: route length scaled into the epoch.
@@ -709,6 +720,10 @@ const wip = {
         progress = 1;
         rowStatus = 'done';
         liveCount++;
+      } else if (held) {
+        progress = Math.max(0.06, Math.min(0.97, (tick - startTick) / duration));
+        rowStatus = 'hold'; // frozen, danger-toned — visible cross-module hold
+        liveCount++;
       } else if (!started) {
         progress = 0.03; // queued sliver
         rowStatus = 'warn'; // amber = waiting to be dispatched
@@ -720,7 +735,7 @@ const wip = {
 
       rows.push({
         row: id,
-        label: id + ' · ' + group,
+        label: id + ' · ' + group + (held ? ' · HOLD' : ''),
         start: 0,
         end: Math.max(0.03, progress),
         status: rowStatus,

@@ -542,6 +542,12 @@ const recipeModule = {
 
   update(container, ctx, _tick) {
     this._currentTick = _tick;
+    // T24 cross-cutting focus: a recipe.changed chip routes here — open the diff
+    // so the signed-off delta is immediately visible. One-shot (router clears
+    // ctx.focus after this first update).
+    if (ctx && ctx.focus && (ctx.focus.type === 'recipe.changed' || ctx.focus.recipeId)) {
+      this._compareOpen = true;
+    }
     this._render(ctx);
   },
 

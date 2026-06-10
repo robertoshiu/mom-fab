@@ -282,6 +282,8 @@ const CSS = `
 @keyframes spc-viol-pulse { 50% { transform: scale(1.7); opacity: 0.6; } }
 #spc-root .ck-pt.spc-live { animation: spc-live-pulse var(--tick) var(--ease-instrument) infinite; }
 @keyframes spc-live-pulse { 50% { opacity: 0.4; } }
+/* I3 yield-alert marker on the live X-bar point: amber ring (warn semantics) */
+#spc-root .ck-pt.spc-yld-mark { stroke: var(--warn); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
 
 @media (prefers-reduced-motion: reduce) {
   #spc-root .chartkit-skeleton,
@@ -329,6 +331,7 @@ const spc = {
     this._errored = false;
     this._lastTick = 0;
     this._lastFedTick = -1;   // last tick mirrored into state (idempotency guard)
+    this._yieldMark = false;  // I3: live X-bar yield-alert marker latch
 
     container.innerHTML = '';
     const root = doc.createElement('div');
@@ -360,6 +363,7 @@ const spc = {
       this._resetFloor = this._lastTick;          // mutate state-first
       this._violations = [];
       this._seenViolTicks.clear();
+      this._yieldMark = false;
       this.update(container, this._ctx, this._lastTick); // idempotent re-reconcile
     });
     actions.appendChild(resetBtn);
@@ -509,6 +513,30 @@ const spc = {
           this._vtable.update({ rows: this._violations });
           if (this._vlogMeta) this._vlogMeta.textContent = String(this._violations.length);
         },
+        // I3 chain (T24): a Yield module yield.alert lands a MARKER on the SPC
+        // chart — a Review-status row in the violation log + a live mark on the
+        // latest X-bar point (the chart "gains a marker"). State-first: mutate
+        // the log, then patch the table + flag the live point class.
+        'yield.alert': (payload) => {
+          const p = payload || {};
+          const key = `yld:${p.tick}`;
+          if (this._seenViolTicks.has(key)) return;
+          this._seenViolTicks.add(key);
+          this._violations.unshift({
+            tick: String(p.tick != null ? p.tick : this._lastTick).padStart(3, '0'),
+            rule: 'YLD',
+            parameter: 'Yield',
+            tool: SPC_TOOL,
+            value: p.value != null ? Number(p.value).toFixed(1) : '—',
+            status: 'Review',
+          });
+          if (this._violations.length > 50) this._violations.length = 50;
+          this._vtable.update({ rows: this._violations });
+          if (this._vlogMeta) this._vlogMeta.textContent = String(this._violations.length);
+          // mark the chart's live point so the alert is visible on the X-bar.
+          this._yieldMark = true;
+          this._markLivePoint();
+        },
       });
     }
 
@@ -520,6 +548,16 @@ const spc = {
     if (!this._root) return;
     const t = ctx.t;
     this._lastTick = tick || 0;
+
+    // T24 cross-cutting focus: an spc.violation chip routes here — scroll the
+    // violation log into view so the related entity is surfaced. One-shot (router
+    // clears ctx.focus after this first update).
+    if (ctx.focus && (ctx.focus.type === 'spc.violation' || ctx.focus.type === 'yield.alert')) {
+      const vlog = this._root.querySelector('#spc-vlog');
+      if (vlog && typeof vlog.scrollIntoView === 'function') {
+        try { vlog.scrollIntoView({ block: 'nearest' }); } catch (_) { /* defensive */ }
+      }
+    }
 
     // tick meter
     if (this._tickmeter) this._tickmeter.textContent = String(this._lastTick).padStart(3, '0');
@@ -616,19 +654,32 @@ const spc = {
     if (this._vlogMeta) this._vlogMeta.textContent = String(this._violations.length);
   },
 
+  // I3: flash a yield-alert marker on the latest X-bar point (the chart "gains a
+  // marker"). Idempotent: re-applied on every decorate while _yieldMark is set,
+  // and re-asserted here so a yield.alert arriving between ticks is visible at once.
+  _markLivePoint() {
+    if (!this._xbarHost) return;
+    const pts = this._xbarHost.querySelectorAll('circle.ck-pt');
+    if (!pts.length) return;
+    pts[pts.length - 1].classList.add('spc-yld-mark');
+  },
+
   // Tag chart-kit's points with our pulse classes (live last point, violations).
   _decoratePoints() {
     [this._xbarHost, this._rHost].forEach((host) => {
       if (!host) return;
       const pts = host.querySelectorAll('circle.ck-pt');
       pts.forEach((c, i) => {
-        c.classList.remove('spc-viol', 'spc-live');
+        c.classList.remove('spc-viol', 'spc-live', 'spc-yld-mark');
         const isLast = i === pts.length - 1;
         const isViol = c.getAttribute('fill') === 'var(--danger)';
         if (isViol) c.classList.add('spc-viol');
         else if (isLast) c.classList.add('spc-live');
       });
     });
+    // I3: re-assert the yield-alert marker on the live X-bar point after a fresh
+    // chart redraw (decorate runs every update and rebuilds the point classes).
+    if (this._yieldMark) this._markLivePoint();
   },
 
   _epochSeed() {

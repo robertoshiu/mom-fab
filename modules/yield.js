@@ -202,6 +202,7 @@ export default {
     this._selectedType = null;        // current drill-down filter (legend echo)
     this._dialog = null;
     this._raf = null;
+    this._focusHandled = false;       // T24: one-shot focus drill guard per mount
 
     _lotIds = ctx && ctx.state ? Array.from(ctx.state.lots.keys()) : [];
 
@@ -235,6 +236,16 @@ export default {
     }
 
     this._render(ctx, safeTick);
+
+    // T24 cross-cutting focus: a defect.detected chip (carrying a defect type)
+    // opens that type's drill-down so the related entity is surfaced. One-shot —
+    // router clears ctx.focus after this first update, so the dialog only opens
+    // from an explicit navigation, never on a later per-tick reconcile.
+    const focus = ctx.focus;
+    if (focus && focus.payload && focus.payload.type && !this._focusHandled) {
+      const dt = defectTypes.find((d) => d.id === focus.payload.type);
+      if (dt) { this._focusHandled = true; this._openDrill(dt.name); }
+    }
   },
 
   destroy() {

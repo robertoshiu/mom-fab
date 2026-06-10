@@ -223,6 +223,7 @@ const aps = {
     this._error = false;
     this._lastTick = 0;
     this._animTimer = null;
+    this._focusEq = null;      // T24: focused equipment id (one-shot nav target)
 
     // --- view shell ---------------------------------------------------------
     const view = doc.createElement('div');
@@ -372,6 +373,14 @@ const aps = {
     this._gLabel.textContent = t('aps.dispatch');
     this._hLabel.textContent = t('aps.equipment_load');
 
+    // T24 cross-cutting focus: an equipment.alarm / equipment.idle chip routes
+    // here; capture the focused equipment id (appended to the gantt meta below
+    // so the related entity is called out). One-shot — router clears ctx.focus
+    // after this first update.
+    if (ctx.focus && ctx.focus.equipmentId) {
+      this._focusEq = ctx.focus.equipmentId;
+    }
+
     // ERROR state (matrix rule c) — render inline banner, skip charts.
     if (this._error) {
       this._renderError(container, ctx);
@@ -388,7 +397,8 @@ const aps = {
     const realBlocks = this._blocks.filter((b) => !b.placeholder);
 
     this._gMeta.textContent =
-      realBlocks.length + ' lots · ' + eqIds.length + ' tools';
+      realBlocks.length + ' lots · ' + eqIds.length + ' tools' +
+      (this._focusEq ? ' · ▸ ' + this._focusEq : '');
     const heatCells = deriveHeatmap(state, this._lastTick, this._blocks, epochSeed);
     const avgUtil = Math.round(heatCells.reduce((a, c) => a + c.value, 0) / heatCells.length);
     this._hMeta.textContent = avgUtil + '% avg · ' + HEAT_COLS + '×' + HEAT_ROWS;

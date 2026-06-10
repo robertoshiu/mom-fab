@@ -203,6 +203,8 @@ function ensureStyles() {
 #scm-table-host .vtable, #scm-table-host .vtable-scroll { height: 100%; }
 .scm-row-actions { display: inline-flex; gap: var(--sp-1); }
 .scm-row-actions .btn { padding: 1px var(--sp-2); font-size: var(--fs-caption); }
+/* T24 cross-module focus highlight on an in-transit row (live nav target) */
+tr.scm-row-focus td { background: var(--accent-dim, rgba(0,212,255,0.10)); box-shadow: inset 2px 0 0 var(--accent); }
 
 /* receive slide-out — token-timed (~0.5 tick) */
 @keyframes scm-slide-out {
@@ -658,6 +660,31 @@ const scm = {
     els.cardsMeta.textContent = this._suppliers.length + ' suppliers';
     els.tableMeta.textContent = visible.length + ' in transit · ' + this._received.length + ' received';
     this._refreshTable(this._lastTick);
+
+    // T24 cross-cutting focus: a material.in_transit chip (or any nav carrying a
+    // lotId) highlights that lot's in-transit row. The store keys rows as
+    // 'EVT-<lotId>' for event-sourced rows; match either form. One-shot.
+    const focus = ctx.focus;
+    if (focus && focus.lotId) this._focusRow(focus.lotId);
+  },
+
+  // T24: highlight + scroll a focused in-transit row (cross-module nav target).
+  _focusRow(lotId) {
+    const host = this._els && this._els.tableHost;
+    if (!host) return;
+    const trs = host.querySelectorAll('tbody tr');
+    trs.forEach((tr) => tr.classList.remove('scm-row-focus'));
+    const candidates = ['EVT-' + lotId, lotId];
+    for (const tr of trs) {
+      const rid = tr.getAttribute('data-rowid');
+      if (rid && candidates.indexOf(rid) >= 0) {
+        tr.classList.add('scm-row-focus');
+        if (typeof tr.scrollIntoView === 'function') {
+          try { tr.scrollIntoView({ block: 'nearest' }); } catch (_) { /* defensive */ }
+        }
+        break;
+      }
+    }
   },
 
   _renderCards(ctx) {

@@ -60,6 +60,27 @@ export class Dispatcher {
     this._owners.delete(owner);
   }
 
+  // --- introspection (T24 cleanup heuristic) --------------------------------
+  // ownerCount() = how many distinct owners hold subscribeAll handles; used by
+  // the unified-unload check to assert the owner map returns to baseline after a
+  // module switch cycle (every module must unsubscribeAll() in destroy()).
+  ownerCount() {
+    return this._owners.size;
+  }
+
+  // total live subscriber callbacks across every event type (a second, finer
+  // leak signal: per-type Sets must shrink back as owners unsubscribe).
+  subscriberCount() {
+    let n = 0;
+    for (const set of this._subs.values()) n += set.size;
+    return n;
+  }
+
+  // is a given owner currently subscribed? (lets QA target a specific module).
+  hasOwner(owner) {
+    return this._owners.has(owner);
+  }
+
   emit(eventType, payload) {
     this._assertType(eventType);
     const event = { type: eventType, payload };
