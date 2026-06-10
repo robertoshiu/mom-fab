@@ -1,0 +1,36 @@
+{
+  "task": "31. Deploy — GitHub Pages",
+  "deploy_url": "https://robertoshiu.github.io/mom-fab/",
+  "repo": "https://github.com/robertoshiu/mom-fab",
+  "pages_source": { "branch": "main", "path": "/", "build_type": "legacy", "https_enforced": true },
+  "auth": "AUTHENTICATED as robertoshiu",
+  "http": {
+    "index_status": 200,
+    "app_js_status": 200,
+    "app_js_content_type": "application/javascript; charset=utf-8",
+    "esm_sh_cors": "access-control-allow-origin: *"
+  },
+  "pages_build_status": "built",
+  "browser_qa": {
+    "title": "FAB MOM",
+    "console_errors": "none",
+    "nav_buttons": 12,
+    "sim_contract_keys": ["scheduler","router","state","dispatcher","d3","playHeroStory","stopHeroStory","setEpochLength"],
+    "d3_loaded": "object (esm.sh resolved on Pages origin; vendor fallback present)",
+    "module_switch": "all 9 modules switch via nav-button click (mes,aps,erp,spc,apc,wip,scm,recipe,yield); scm/yield verified in isolation — earlier loop blanks were 1.2s crossfade read-timing artifacts, not failures",
+    "hero_autoplay": "playHeroStory() fires; tick-driven choreography observed MES->SPC as ticks advanced (8->15); 'PLAYING DEMO STORY' indicator visible"
+  },
+  "load_timing_ms": {
+    "warm_cache_domContentLoaded": 351,
+    "warm_cache_loadEvent": 354,
+    "budget": "< 2000ms (PASS)"
+  },
+  "de_identification_gate": {
+    "index.html": 0,
+    "i18n_dicts": 0,
+    "DEPLOY.md": 0,
+    "README": "not created (exempt)",
+    "DESIGN.md": "1 hit = the prohibition rule text itself (exempt, not a brand reference)"
+  },
+  "screenshot": ".omo/evidence/task-31-deployed.png"
+}
