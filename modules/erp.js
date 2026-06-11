@@ -166,6 +166,7 @@ const erp = {
     const bomPanel = document.createElement('div');
     bomPanel.className = 'panel erp-bom';
     bomPanel.dataset.mobile = 'hide'; // T33 <768: BOM tree hidden (rep = kanban)
+    bomPanel.dataset.tour = 'erp.bom'; // guided-tour anchor (M2)
     const bomHead = document.createElement('div');
     bomHead.className = 'panel-head';
     const bomLabel = document.createElement('span');
@@ -189,6 +190,7 @@ const erp = {
     const kbPanel = document.createElement('div');
     kbPanel.className = 'panel erp-kanban';
     kbPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: ERP kanban
+    kbPanel.dataset.tour = 'erp.kanban'; // guided-tour anchor (M2)
     const kbHead = document.createElement('div');
     kbHead.className = 'panel-head';
     const kbLabel = document.createElement('span');

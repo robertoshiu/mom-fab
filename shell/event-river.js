@@ -225,6 +225,9 @@ export class EventRiver {
     // structure: [track][+N more]. Track holds the chips; more is the overflow
     // indicator. We patch innerHTML on the track only (idempotent full reconcile).
     this.container.innerHTML = '';
+    // Guided-tour anchor: the river CONTAINER (M2). NEVER a chip — chips drift
+    // and age out; the container is the stable target.
+    this.container.setAttribute('data-tour', 'shell.river');
     this._track = doc.createElement('div');
     this._track.className = 'river-track';
     this._more = doc.createElement('span');

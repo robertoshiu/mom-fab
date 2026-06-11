@@ -177,6 +177,7 @@ const mes = {
     const topPanel = doc.createElement('div');
     topPanel.className = 'panel mes-panel';
     topPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: MES table
+    topPanel.dataset.tour = 'mes.lot-table'; // guided-tour anchor (M2)
 
     const head = doc.createElement('div');
     head.className = 'mes-panel-head';
@@ -236,6 +237,7 @@ const mes = {
     const botPanel = doc.createElement('div');
     botPanel.className = 'panel mes-panel';
     botPanel.dataset.mobile = 'hide'; // T33 <768: not the representative panel
+    botPanel.dataset.tour = 'mes.gantt'; // guided-tour anchor (M2)
 
     const botHead = doc.createElement('div');
     botHead.className = 'mes-panel-head';

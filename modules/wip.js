@@ -487,6 +487,7 @@ const wip = {
     const gPanel = doc.createElement('div');
     gPanel.className = 'wip-panel panel';
     gPanel.dataset.mobile = 'hide'; // T33 <768: gantt hidden (rep = sparklines)
+    gPanel.dataset.tour = 'wip.gantt'; // guided-tour anchor (M2)
     const gHead = doc.createElement('div');
     gHead.className = 'panel-head';
     this._ganttLabel = doc.createElement('span');
@@ -523,6 +524,7 @@ const wip = {
     const fPanel = doc.createElement('div');
     fPanel.className = 'wip-panel panel';
     fPanel.dataset.mobile = 'hide'; // T33 <768: flow hidden (rep = sparklines)
+    fPanel.dataset.tour = 'wip.flow'; // guided-tour anchor (M2)
     const fHead = doc.createElement('div');
     fHead.className = 'panel-head';
     this._flowLabel = doc.createElement('span');
@@ -547,6 +549,7 @@ const wip = {
     const qPanel = doc.createElement('div');
     qPanel.className = 'wip-panel panel';
     qPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: WIP sparklines
+    qPanel.dataset.tour = 'wip.queue'; // guided-tour anchor (M2)
     const qHead = doc.createElement('div');
     qHead.className = 'panel-head';
     this._queueLabel = doc.createElement('span');

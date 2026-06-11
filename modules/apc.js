@@ -198,6 +198,7 @@ const apc = {
     const r2rPanel = doc.createElement('div');
     r2rPanel.className = 'panel apc-r2r';
     r2rPanel.dataset.mobile = 'hide'; // T33 <768: R2R hidden (rep = FDC)
+    r2rPanel.dataset.tour = 'apc.r2r'; // guided-tour anchor (M2)
     const r2rHead = doc.createElement('div');
     r2rHead.className = 'panel-head';
     this._r2rLabel = doc.createElement('span');
@@ -225,6 +226,7 @@ const apc = {
     const fdcPanel = doc.createElement('div');
     fdcPanel.className = 'panel apc-fdc';
     fdcPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: APC FDC
+    fdcPanel.dataset.tour = 'apc.fdc'; // guided-tour anchor (M2)
     const fdcHead = doc.createElement('div');
     fdcHead.className = 'panel-head';
     this._fdcLabel = doc.createElement('span');

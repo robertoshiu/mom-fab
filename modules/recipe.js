@@ -382,6 +382,7 @@ const recipeModule = {
     const paramPanel = doc.createElement('div');
     paramPanel.className = 'recipe-panel panel';
     paramPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: Recipe table
+    paramPanel.dataset.tour = 'recipe.params'; // guided-tour anchor (M2)
     const paramHead = doc.createElement('div');
     paramHead.className = 'panel-head';
     const paramLabel = doc.createElement('span');
@@ -400,6 +401,7 @@ const recipeModule = {
     const diffPanel = doc.createElement('div');
     diffPanel.className = 'recipe-panel panel';
     diffPanel.dataset.mobile = 'hide'; // T33 <768: version diff hidden (rep = table)
+    diffPanel.dataset.tour = 'recipe.diff'; // guided-tour anchor (M2)
     const diffHead = doc.createElement('div');
     diffHead.className = 'panel-head';
     const diffLabel = doc.createElement('span');

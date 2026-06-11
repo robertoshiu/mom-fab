@@ -312,6 +312,7 @@ export default {
     // pareto panel
     const pareto = this._panel(doc, 'y-pareto', t('yield.pareto'), 'y-pareto-meta');
     pareto.panel.dataset.mobile = 'rep'; // T33 <768 representative: Yield pareto
+    pareto.panel.dataset.tour = 'yield.pareto'; // guided-tour anchor (M2)
     grid.appendChild(pareto.panel);
     this._paretoHost = pareto.host;
     this._paretoMeta = pareto.meta;
@@ -319,6 +320,7 @@ export default {
     // wafer panel
     const wafer = this._panel(doc, 'y-wafer', t('yield.wafer_map'), 'y-wafer-meta');
     wafer.panel.dataset.mobile = 'hide'; // T33 <768: wafer map hidden
+    wafer.panel.dataset.tour = 'yield.wafer'; // guided-tour anchor (M2)
     grid.appendChild(wafer.panel);
     this._waferMeta = wafer.meta;
     const canvas = doc.createElement('canvas');
@@ -331,6 +333,7 @@ export default {
     // trend panel
     const trend = this._panel(doc, 'y-trend', t('yield.trend'), 'y-trend-meta');
     trend.panel.dataset.mobile = 'rep'; // T33 <768 representative: Yield trend
+    trend.panel.dataset.tour = 'yield.trend'; // guided-tour anchor (M2)
     grid.appendChild(trend.panel);
     this._trendHost = trend.host;
     this._trendMeta = trend.meta;

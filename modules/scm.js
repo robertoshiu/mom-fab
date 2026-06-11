@@ -320,6 +320,7 @@ const scm = {
     const cardsPanel = document.createElement('section');
     cardsPanel.className = 'card panel scm-panel';
     cardsPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: SCM cards
+    cardsPanel.dataset.tour = 'scm.scorecard'; // guided-tour anchor (M2)
     const cardsHead = document.createElement('div');
     cardsHead.className = 'panel-head';
     const cardsLabel = document.createElement('span');
@@ -341,6 +342,7 @@ const scm = {
     const tablePanel = document.createElement('section');
     tablePanel.className = 'card panel scm-panel';
     tablePanel.dataset.mobile = 'hide'; // T33 <768: in-transit table hidden (rep = cards)
+    tablePanel.dataset.tour = 'scm.transit'; // guided-tour anchor (M2)
     const tableHead = document.createElement('div');
     tableHead.className = 'panel-head';
     const tableLabel = document.createElement('span');

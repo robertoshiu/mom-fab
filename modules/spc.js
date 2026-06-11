@@ -413,6 +413,7 @@ const spc = {
     xbarPanel.id = 'spc-xbar';
     xbarPanel.className = 'panel';
     xbarPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: SPC X-bar
+    xbarPanel.dataset.tour = 'spc.xbar'; // guided-tour anchor (M2)
     xbarPanel.innerHTML =
       `<div class="panel-head"><span class="label">${t('spc.xbar_chart')} — Chamber Pressure</span>` +
       `<span class="badge badge-info">${SPC_TOOL}</span>` +
@@ -425,6 +426,7 @@ const spc = {
     rPanel.id = 'spc-r';
     rPanel.className = 'panel';
     rPanel.dataset.mobile = 'hide'; // T33 <768: R chart hidden (rep = X-bar)
+    rPanel.dataset.tour = 'spc.r'; // guided-tour anchor (M2)
     rPanel.innerHTML =
       `<div class="panel-head"><span class="label">${t('spc.r_chart')} — Range</span>` +
       `<span class="meta">n=${SUBGROUP_N} · R̄=${RBAR.toFixed(1)}</span></div>` +
@@ -454,6 +456,7 @@ const spc = {
     side.id = 'spc-rules';
     side.className = 'panel';
     side.dataset.mobile = 'hide'; // T33 <768: WE-rules panel hidden
+    side.dataset.tour = 'spc.rules'; // guided-tour anchor (M2)
     side.innerHTML =
       `<div class="panel-head"><span class="label" data-i18n="spc.we_rules">${t('spc.we_rules')}</span></div>` +
       `<div class="panel-body"></div>`;
@@ -493,6 +496,7 @@ const spc = {
     vlog.id = 'spc-vlog';
     vlog.className = 'panel';
     vlog.dataset.mobile = 'hide'; // T33 <768: violation log hidden (rep = X-bar)
+    vlog.dataset.tour = 'spc.vlog'; // guided-tour anchor (M2)
     vlog.innerHTML =
       `<div class="panel-head"><span class="label">Violation Log</span>` +
       `<span class="meta" id="spc-vlog-meta">0</span></div>` +

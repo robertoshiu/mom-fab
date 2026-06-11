@@ -273,6 +273,7 @@ const aps = {
     const gPanel = doc.createElement('div');
     gPanel.className = 'aps-panel panel';
     gPanel.dataset.mobile = 'hide'; // T33 <768: gantt hidden (rep = heatmap)
+    gPanel.dataset.tour = 'aps.dispatch'; // guided-tour anchor (M2)
     const gHead = doc.createElement('div');
     gHead.className = 'panel-head';
     this._gLabel = doc.createElement('span');
@@ -295,6 +296,7 @@ const aps = {
     const hPanel = doc.createElement('div');
     hPanel.className = 'aps-panel panel';
     hPanel.dataset.mobile = 'rep'; // T33 <768 representative panel: APS heatmap
+    hPanel.dataset.tour = 'aps.load'; // guided-tour anchor (M2)
     const hHead = doc.createElement('div');
     hHead.className = 'panel-head';
     this._hLabel = doc.createElement('span');

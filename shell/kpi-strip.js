@@ -243,6 +243,9 @@ export class KpiStrip {
   // -------------------------------------------------------------------------
   _build() {
     this.container.textContent = '';
+    // Guided-tour anchor: the whole strip (M2). NOT individual cards — at
+    // 768-1919px the oee/alarms cards reparent into a hidden popover.
+    this.container.setAttribute('data-tour', 'shell.kpi-strip');
     for (const desc of CARDS) {
       const root = document.createElement('div');
       root.className = 'kpi-card panel';
