@@ -132,6 +132,16 @@ function boot() {
     state,
     dispatcher,
     t,
+    // F3 fix: the router is the SINGLE sync point for the left nav rail. On every
+    // successful module switch (nav click, river chip, hero beat, keyboard 1-9) the
+    // router fires this AFTER mount; we move the rail highlight SILENTLY (no
+    // module:change) so the rail always follows #content with no event loop. This
+    // replaces the hero story's own per-beat setActiveSilent call (now redundant).
+    onModuleChanged: (id) => {
+      if (navHandle && typeof navHandle.setActiveSilent === 'function') {
+        navHandle.setActiveSilent(id);
+      }
+    },
   });
   // T24 integration fix: the event river lives in the topbar, NOT inside the
   // router's #content container, so its bubbling `river:navigate` CustomEvent
@@ -234,7 +244,10 @@ function boot() {
   // once-per-load flag lives on the instance and is not reset on epoch wrap).
   const heroStory = createHeroStory({
     scheduler, router, dispatcher, state, t,
-    nav: navHandle, // { setActiveSilent } — rail highlight sync without an event
+    // rail-highlight sync for story beats is now owned by the router's
+    // onModuleChanged callback (wired above), so the story no longer needs nav.
+    // Pass-through kept (harmless) for back-compat with the HeroStory ctor.
+    nav: navHandle,
   });
 
   function onTick(tick) {

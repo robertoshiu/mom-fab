@@ -300,12 +300,13 @@ export class HeroStory {
     // (1) flash the 0.5s caption overlay immediately (step name + one-line note).
     this._showCaption(step);
 
-    // (2) sync the nav rail highlight WITHOUT dispatching module:change (so the
-    //     story's own switch is never mistaken for a user interrupt).
-    if (this.nav && typeof this.nav.setActiveSilent === 'function') {
-      this.nav.setActiveSilent(moduleId);
-    }
-
+    // (2) rail-highlight sync is now owned by the router's onModuleChanged callback
+    //     (wired in app.js → nav.setActiveSilent), which fires after router.set()
+    //     mounts the module below. Doing it here too would double-fire (harmless but
+    //     redundant) and split the sync across two owners — the router is the single
+    //     sync point (F3). Story switches still go through router.set() directly (no
+    //     module:change), so they remain distinguishable from a user interrupt.
+    //
     // (3) switch + highlight: router.set() with the synthesised focus payload so
     //     the target module's existing ctx.focus handler highlights the entity.
     //     router.set() is ASYNC (0.2s fade + lazy module load + init/subscribe);

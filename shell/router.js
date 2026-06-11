@@ -72,11 +72,20 @@ function ensureStyles(doc) {
 
 export class Router {
   // container = #content host; ctxBase = { state, dispatcher, t } (router added here).
-  constructor({ container, state, dispatcher, t } = {}) {
+  // onModuleChanged(id) is an optional callback fired after every successful module
+  // switch (mount OR soft-fail — i.e. whenever _currentId becomes a new id). app.js
+  // wires it to nav.setActiveSilent so the left rail highlight always follows the
+  // router, regardless of what triggered the switch (nav click, river chip, hero
+  // beat, keyboard). It is SILENT by contract (no module:change), so the nav-click →
+  // router.set → sync-back path cannot re-trigger router.set (no event loop). The
+  // router never imports nav — this keeps it free of nav import-order coupling,
+  // matching the existing eventRiver.onNavigate / onLocaleChange wiring in app.js.
+  constructor({ container, state, dispatcher, t, onModuleChanged } = {}) {
     this.container = container;
     this.state = state;
     this.dispatcher = dispatcher;
     this.t = t;
+    this.onModuleChanged = typeof onModuleChanged === 'function' ? onModuleChanged : null;
 
     this._importers = new Map();     // id -> () => import(...)
     this._current = null;            // the live module instance
@@ -130,6 +139,19 @@ export class Router {
 
   getActive() {
     return this._currentId;
+  }
+
+  // Single sync point: tell the world (the nav rail, via app.js's wired callback)
+  // that the active module id changed. SILENT — the callback must not re-enter
+  // router.set (nav uses setActiveSilent), so there is no nav→router→nav loop.
+  // Defensive: never let a misbehaving listener break a switch.
+  _notifyModuleChanged(id) {
+    if (!this.onModuleChanged) return;
+    try {
+      this.onModuleChanged(id);
+    } catch (err) {
+      console.warn('[router] onModuleChanged listener threw:', err && err.message);
+    }
   }
 
   // Normalise a river:navigate detail into a one-shot focus payload modules can
@@ -273,6 +295,7 @@ export class Router {
       console.warn('[router] module "' + id + '" failed to load:', err && err.message);
       this._renderSoftFail(id);
       this._currentId = id; // remember intent so nav highlight + retry stay coherent
+      this._notifyModuleChanged(id); // keep the rail in sync even on soft-fail
       return;
     }
 
@@ -292,6 +315,7 @@ export class Router {
       this._teardownCurrent();
       this._renderSoftFail(id);
       this._currentId = id;
+      this._notifyModuleChanged(id); // keep the rail in sync even on init failure
       return;
     }
     if (seq !== this._switchSeq) {
@@ -304,6 +328,12 @@ export class Router {
 
     this._current = mod;
     this._currentId = id;
+
+    // Sync the left nav rail to the now-active module (single sync point). Fired
+    // here on EVERY successful switch — nav click, river chip, hero beat, keyboard —
+    // so the rail highlight always follows #content. SILENT (setActiveSilent), so a
+    // nav-originated switch does not bounce back into router.set.
+    this._notifyModuleChanged(id);
 
     // catch the freshly-mounted module up to the current tick before fading in.
     // ctx.focus is still set here so this first update can honour it; we clear
@@ -370,8 +400,8 @@ export class Router {
 // Build + wire a router, pre-registering all nine modules. ctxBase carries the
 // engine handles; the controller calls router.tick(tick) each tick and hands
 // onLocaleChange → router.refreshActive().
-export function createRouter({ container, state, dispatcher, t }) {
-  const router = new Router({ container, state, dispatcher, t });
+export function createRouter({ container, state, dispatcher, t, onModuleChanged }) {
+  const router = new Router({ container, state, dispatcher, t, onModuleChanged });
 
   // PRE-REGISTER ALL NINE modules now (files arrive in Wave 3; set() on an
   // unbuilt one fails soft into the warm panel, never the boot banner).
