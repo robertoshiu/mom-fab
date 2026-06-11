@@ -237,11 +237,13 @@ export class HeroStory {
         this._fireBeat(step, tick);
       }
     }
-    // story complete once the last beat has fired.
-    const lastOffset = this._steps[this._steps.length - 1].tick;
-    if (this._firedOffsets.has(lastOffset)) {
-      this._finish();
-    }
+    // NOTE: we do NOT _finish() here once the last beat's offset is marked fired.
+    // _fireBeat() for the closing beat resolves its work ASYNCHRONOUSLY (router.set
+    // → afterMount → _completeBeat), so finishing synchronously here would clear
+    // this._playing BEFORE _completeBeat() ran — the afterMount guard would then
+    // bail and drop the closing-beat payload (the 'recovered' status write + the
+    // closing river chip). Instead, _finish() is deferred until _completeBeat() has
+    // actually executed the closing-beat work (see _completeBeat).
   }
 
   // Manual / autoplay entry. Idempotent guard: re-play while running restarts the
@@ -348,6 +350,16 @@ export class HeroStory {
     if (step.module === 'overview' && this.state
         && typeof this.state.updateLot === 'function') {
       this.state.updateLot(this._lotId, { status: 'recovered' });
+    }
+
+    // Closing beat: now that the final beat's payload (recovered status write +
+    // closing river chip + injection) has actually landed, the story is complete.
+    // _finish() is deferred to HERE (not notifyTick) so it runs AFTER the async
+    // router.set → afterMount → _completeBeat chain resolves; clearing _playing any
+    // earlier would make this very call's afterMount guard bail and drop the finale.
+    const lastStep = this._steps[this._steps.length - 1];
+    if (step === lastStep || step.tick === lastStep.tick) {
+      this._finish();
     }
   }
 
