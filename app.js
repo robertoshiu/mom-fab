@@ -17,10 +17,29 @@ import { KpiStrip } from './shell/kpi-strip.js';
 import { createEventRiver } from './shell/event-river.js';
 import { createRouter } from './shell/router.js';
 import { createHeroStory } from './modules/hero-story.js';
+import { createTourEngine } from './engine/tour-engine.js';
+import { createGuideHub } from './shell/guide-hub.js';
+import { createTourInvite } from './shell/tour-invite.js';
+import { tourIds } from './scenarios/tours.js';
 
 const KNOWN_EVENT_TYPES = new Set(Object.keys(eventRouting));
 
 function boot() {
+  // --- URL query parse (A4): the app's FIRST + ONLY query reader ----------
+  // ?tour=<id> deep-links a guided tour (strict whitelist via tourIds from
+  // scenarios/tours.js — a hand-edited/unknown id is ignored + warned). ?debug=tour
+  // turns on the engine's step-transition console.debug. No other query keys exist.
+  const _params = new URLSearchParams(
+    typeof location !== 'undefined' ? location.search : '',
+  );
+  const _validTourIds = new Set(Array.isArray(tourIds) ? tourIds : []);
+  const _tourParam = _params.get('tour');
+  const _bootTourId = _tourParam && _validTourIds.has(_tourParam) ? _tourParam : null;
+  if (_tourParam && !_bootTourId) {
+    console.warn('[tour] ignored unknown ?tour= id:', _tourParam);
+  }
+  const _debugTour = _params.get('debug') === 'tour';
+
   // --- initial locale + theme (3A) ----------------------------------------
   // theme: dark is the default (data-theme="dark" set in index.html); the
   // toggle is the single source of truth (T8) — we do not override at runtime.
@@ -248,7 +267,41 @@ function boot() {
     // onModuleChanged callback (wired above), so the story no longer needs nav.
     // Pass-through kept (harmless) for back-compat with the HeroStory ctor.
     nav: navHandle,
+    // A2/DS-2: fire a DOM event when the hero ends (finish OR interrupt), once
+    // per run. The guide hub (built later) listens to gate its non-blocking
+    // invite coach-mark — the tour engine itself does NOT need this signal.
+    onFinish: () => {
+      document.dispatchEvent(new CustomEvent('hero:finished'));
+    },
   });
+
+  // --- guided-tour engine (M1) ---------------------------------------------
+  // Declarative step sequencer + spotlight overlay. ctx wires the router (cross-
+  // module steps), the scheduler (epoch defer A1 + auto-mode ticks), the hero
+  // stop fn (mutex on start), t() for copy, and onLocaleChange for live re-render.
+  const tourEngine = createTourEngine({
+    router,
+    scheduler,
+    stopHero: () => heroStory.stop(),
+    t,
+    onLocaleChange,
+    debug: _debugTour,
+  });
+
+  // --- Guide Hub + first-visit invite (M3) ---------------------------------
+  // The Guide Hub dialog (? button + engine final-card [openHub] → document
+  // `guide:open`) lists the 11 tours, their completion LEDs, a kiosk auto-play
+  // row, and the How-this-works overview. The invite is the non-blocking
+  // first-visit coach-mark; it arms now but only reveals after the hero finishes
+  // (DS-2) and never when a tour was deep-linked (?tour=) this load.
+  // eslint-disable-next-line no-unused-vars
+  const guideHub = createGuideHub({ tourEngine, t, onLocaleChange });
+  const tourInvite = createTourInvite({
+    tourEngine,
+    t,
+    deepLinkActive: !!_bootTourId,
+  });
+  tourInvite.arm();
 
   function onTick(tick) {
     emitSkeletonTick(tick);   // skeleton events → dispatcher.emit
@@ -264,7 +317,13 @@ function boot() {
   // for 'mes' during initNav() (before the router existed to hear it), so we
   // set it explicitly here. Until T15 lands this shows the warm soft-fail panel
   // — acceptable this wave (it must NOT trip the D14 boot banner).
-  router.set('mes');
+  // Deep-link exception (A4): when ?tour= will mount its own first-step module,
+  // we do NOT also set('mes') — racing the two lazy imports is exactly what let
+  // the in-flight mes mount clobber the tour's anchored module. The deep-link
+  // tour owns the first module switch instead (started below, after settle).
+  if (!_bootTourId) {
+    router.set('mes');
+  }
 
   // --- window.__SIM 8-key contract (3A) ------------------------------------
   // router / d3 / playHeroStory / stopHeroStory are null-stub placeholders;
@@ -279,7 +338,35 @@ function boot() {
     playHeroStory: () => heroStory.play(),  // T30: manual replay (nav ▶ also calls this)
     stopHeroStory: () => heroStory.stop(),  // T30: cancel a running story
     setEpochLength: (n) => scheduler.setEpochLength(n),
+    // guided-tour QA contract (M1): drive + observe the tour engine headlessly.
+    startTour: (id, opts) => tourEngine.start(id, opts || {}),
+    stopTour: (reason) => tourEngine.stop(reason || 'sim'),
+    tourState: () => tourEngine.state(),
   };
+
+  // ?tour=<id> deep-link (A4/E5): start the whitelisted tour once boot settles.
+  // Reduced-motion / no explicit mode → manual default (DS-2 / E3).
+  //
+  // Two boot races made step 0 degrade to a centered card before this fix:
+  //   1. The deep-link tour's first router.set() raced the boot mes mount; the
+  //      carrier module (e.g. SPC's d3 chart) had not finished mounting when the
+  //      engine first resolved the anchor. We now skip the boot set('mes') above
+  //      AND give the deep-link first step an extended anchor poll (deepLink:true).
+  //   2. The hero story's tick-3 autoplay gate would silently router.set() its
+  //      own module over the tour's anchored module (story switches bypass
+  //      module:change, so the tour's nav-interrupt never fired). We suppress the
+  //      hero autoplay for this load so the deep-link tour keeps #content.
+  // We defer the start to a settled frame (rAF) so #content has had one paint to
+  // begin mounting before the engine resolves the first anchor.
+  if (_bootTourId) {
+    heroStory.suppressAutoplay();
+    const startDeepLink = () => tourEngine.start(_bootTourId, { mode: 'manual', deepLink: true });
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => requestAnimationFrame(startDeepLink));
+    } else {
+      startDeepLink();
+    }
+  }
 
   // re-apply the reload button label now that i18n is active.
   const reloadBtn = document.getElementById('boot-error-reload');

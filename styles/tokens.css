@@ -89,6 +89,13 @@
      atmosphere vignette (9999, pointer-events:none) and boot overlays (10000+). */
   --z-rail: 100;       /* the instrument nav rail container                  */
   --z-tooltip: 110;    /* rail tooltips, above the rail surface              */
+  /* Guided-tour stack (DS-5): the spotlight overlay + its callout sit far above
+     content but BELOW the Guide Hub dialog (which opens on top of a paused tour)
+     and the vignette/toast layers. Ladder: tour-overlay 9000 < tour-callout 9010
+     < dialog 9500 < vignette 9999 (pointer-none) < toast 10000 (alarms pierce). */
+  --z-tour-overlay: 9000;  /* the spotlight scrim + SVG mask cutout          */
+  --z-tour-callout: 9010;  /* the anchored coach-mark / callout panel        */
+  --z-dialog: 9500;        /* .dialog-backdrop — Guide Hub above a tour      */
 
   /* -- Motion ------------------------------------------------------ */
   --transition: 200ms ease;

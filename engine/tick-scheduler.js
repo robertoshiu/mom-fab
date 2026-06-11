@@ -72,6 +72,12 @@ export class TickScheduler {
     this._inEpochReset = false;
     this._choreoTimerId = null;
 
+    // A1: epoch listeners — fn('start') at the reset/choreography window open,
+    // fn('end') when it closes. The guided-tour engine subscribes so it can
+    // DEFER a step transition that would otherwise land inside the 1.2s freeze
+    // window (it waits for the 'end' phase before re-anchoring the spotlight).
+    this._epochListeners = new Set();
+
     this._visibilityHandler = null;
 
     this._tickLoop = this._tickLoop.bind(this);
@@ -126,6 +132,31 @@ export class TickScheduler {
     }
   }
 
+  // A1: true while the epoch-reset / 1.2s choreography window is open. Consumers
+  // (the guided-tour engine) read this to avoid mutating the DOM mid-transition.
+  isChoreographing() {
+    return this._inEpochReset;
+  }
+
+  // A1: subscribe to epoch-reset phase notifications. fn is called with 'start'
+  // when the window opens and 'end' when it closes. Returns an unsubscribe fn.
+  // Defensive: a throwing listener never breaks the reset sequence.
+  addEpochListener(fn) {
+    if (typeof fn !== 'function') return () => {};
+    this._epochListeners.add(fn);
+    return () => this._epochListeners.delete(fn);
+  }
+
+  _notifyEpoch(phase) {
+    for (const fn of this._epochListeners) {
+      try {
+        fn(phase);
+      } catch (err) {
+        console.warn('[scheduler] epoch listener threw:', err && err.message);
+      }
+    }
+  }
+
   // -- tick advance ---------------------------------------------------------
 
   _tickLoop() {
@@ -152,6 +183,9 @@ export class TickScheduler {
 
   _runEpochReset() {
     this._inEpochReset = true;
+    // A1: signal the window OPEN before any hook runs so subscribers (tour
+    // engine) defer transitions from the very first frame of the freeze.
+    this._notifyEpoch('start');
 
     // (1) freeze dispatcher emits
     this._hooks.onFreeze();
@@ -178,6 +212,8 @@ export class TickScheduler {
     const finishReset = () => {
       this._choreoTimerId = null;
       this._inEpochReset = false;
+      // A1: signal the window CLOSED so a deferred tour transition can proceed.
+      this._notifyEpoch('end');
       // (6) resume emits → tick 0 fires normally
       this._hooks.onResume();
       this._emitTick(0);

@@ -179,13 +179,20 @@ function focusForStep(step, tick, lotId, defectType) {
 }
 
 export class HeroStory {
-  constructor({ scheduler, router, dispatcher, state, t, nav } = {}) {
+  constructor({ scheduler, router, dispatcher, state, t, nav, onFinish } = {}) {
     this.scheduler = scheduler;
     this.router = router;
     this.dispatcher = dispatcher;
     this.state = state;
     this.t = typeof t === 'function' ? t : (k) => k;
     this.nav = nav || null; // { setActiveSilent } — optional rail-highlight sync
+    // A2: fired ONCE per play run when the story ends — by natural completion
+    // (_finish) OR interrupt (stop). app.js wires it to dispatch 'hero:finished'
+    // so the guided-tour invite (DS-2) appears only after the hero has had its
+    // moment. Guarded by _finishFired so a stop() following a _finish() (or vice
+    // versa) never double-fires within the same run.
+    this._onFinish = typeof onFinish === 'function' ? onFinish : null;
+    this._finishFired = false;
 
     this._playing = false;
     this._storyStart = 0;     // currentTick when play() was called
@@ -211,6 +218,35 @@ export class HeroStory {
 
   isPlaying() {
     return this._playing;
+  }
+
+  // Deep-link mutex (DS-2): when the app boots into a ?tour= deep-link the guided
+  // tour owns #content from the first frame, so the hero must NOT autoplay this
+  // load — otherwise its tick-3 autoplay gate would silently router.set() its own
+  // module over the tour's anchored module, clobbering the spotlight target. We
+  // pre-consume the once-per-load autoplay gate (same flag the gate itself sets)
+  // so maybeAutoplay() no-ops for the rest of the load. The manual ▶ replay is
+  // unaffected (it calls play() directly, not through the gate).
+  suppressAutoplay() {
+    this._autoplayedThisLoad = true;
+  }
+
+  // A2: late-bind the finish hook (matches the optional ctor `onFinish`).
+  setOnFinish(fn) {
+    this._onFinish = typeof fn === 'function' ? fn : null;
+  }
+
+  // Fire the finish hook at most once per play run (see _finishFired note).
+  _emitFinish() {
+    if (this._finishFired) return;
+    this._finishFired = true;
+    if (this._onFinish) {
+      try {
+        this._onFinish();
+      } catch (err) {
+        console.warn('[hero-story] onFinish hook threw:', err && err.message);
+      }
+    }
   }
 
   // Autoplay gate (once-per-load). app.js calls this every tick; we self-trigger
@@ -251,6 +287,7 @@ export class HeroStory {
   play() {
     const start = this.scheduler ? this.scheduler.currentTick : 0;
     this._playing = true;
+    this._finishFired = false; // A2: arm the once-per-run finish hook
     this._storyStart = start;
     this._firedOffsets = new Set();
     this._showIndicator();
@@ -274,6 +311,7 @@ export class HeroStory {
     this._hideIndicator();
     this._dimRiver(false);
     this._clearCaption(true);
+    this._emitFinish(); // A2: interrupt counts as a finish for the invite gate
   }
 
   // Natural completion after the final beat — same teardown as stop() but it is
@@ -284,6 +322,7 @@ export class HeroStory {
     this._hideIndicator();
     this._dimRiver(false);
     // leave the last caption to fade on its own timer.
+    this._emitFinish(); // A2: natural completion fires the invite gate hook
   }
 
   destroy() {

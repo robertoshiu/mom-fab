@@ -21,6 +21,9 @@
   --grid: rgba(0, 212, 255, 0.08);
   --hairline: rgba(143, 168, 199, 0.22);
   --bezel: rgba(0, 212, 255, 0.45);
+  /* guided-tour scrim (DS-9): the spotlight dim layer. Dark monitoring posture
+     wants a deep dim so the cutout reads as the single live focus. */
+  --tour-scrim: rgba(8, 16, 32, 0.7);
 }
 
 :root[data-theme="light"] {
@@ -44,6 +47,9 @@
   --grid: rgba(26, 35, 50, 0.11);
   --hairline: rgba(26, 35, 50, 0.16);
   --bezel: rgba(0, 102, 204, 0.45);
+  /* light report posture (DS-9): a lighter scrim — the page stays readable
+     around the cutout while still steering the eye to the live focus. */
+  --tour-scrim: rgba(20, 30, 45, 0.45);
   --sh-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
   --sh-md: 0 4px 12px rgba(16, 24, 40, 0.08);
   --sh-lg: 0 12px 32px rgba(16, 24, 40, 0.12);
@@ -162,6 +168,9 @@ html, body {
 .dialog-backdrop {
   position: fixed;
   inset: 0;
+  /* DS-5: seat the modal scrim on the z-ladder so the Guide Hub opens ABOVE a
+     paused guided tour (overlay 9000 / callout 9010) and below vignette/toast. */
+  z-index: var(--z-dialog);
   background: rgba(4, 8, 18, 0.62);
   backdrop-filter: blur(2px);
 }
