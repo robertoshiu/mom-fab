@@ -1,0 +1,2 @@
+{"n":174,"r":"0.04705","absR":"0.04705","independent":true,"spc_tick50":"0.4157","defect_tick50":"0.1999"}
+{"tick50_spc":"0.58352","tick50_defect":"0.19987","distinct":true}

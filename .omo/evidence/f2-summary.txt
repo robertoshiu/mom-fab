@@ -1,0 +1,14 @@
+F2 Code Quality Review — Evidence Summary
+==========================================
+Banned APIs (Math.random|Date.now|new Date(|crypto.getRandomValues): 0 non-comment code hits
+console.log: 0 (only console.warn x14; no debug/info)
+d3 subpath imports (from 'd3-'): 0; all use 'd3' barrel; import map maps only "d3" -> ./engine/d3-loader.js
+vendor/d3.v7.min.js: 279635 bytes (273KB) < 350KB
+destroy(): 9/9 tour modules + hero-story call unsubscribeAll; interrupt via direct d3 interrupt() or chart-kit.destroy() (which runs selection.interrupt()); erp has no d3 transitions (clearTimeout for CSS slide timers)
+Leak test (20 switches -> mes): owners 4->4, subs 21->21, DOM 1300->1336 (+36 river chips), heap 9.54MB->9.54MB (0 growth)
+DOM per module: mes1336 wip660 aps647 scm579 apc407 spc348 recipe291 erp266 yield250 — all <3000
+Event-gate: wired in Dispatcher.emit (line 95); live hold suppression verified (suppressible gated, non-suppressible passes)
+PRNG independence: deriveTickSeed('spc.xbar') vs ('defect.xy'): r=-0.004 (n=500) PASS; n=100 single-draw is underpowered noise (-0.155, CI +/-0.196)
+Hero autoplay: tick-gated at currentTick===3; fired MES beat live at tick 3; no setTimeout narrative chain (2 setTimeout are render-only caption fades)
+Contrast: dark 13/13 pairs >=4.5:1 (min 4.64); light 14/14 pairs >=4.5:1 (min 5.05)
+CSS px discipline: 0 raw font-size:Npx, 0 raw padding/margin:Npx in styles/ and injected CSS; px only for borders/fixed-dims/shadows (reference precedent)

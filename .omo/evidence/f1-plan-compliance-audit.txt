@@ -1,0 +1,41 @@
+F1 — Plan Compliance Audit (read-only, re-run independently)
+
+MODULE CONTRACT (node-introspected with d3 stubbed via resolver hook):
+  mes/aps/erp/spc/apc/wip/scm/recipe/yield — all default-export
+  {id,label,init,update,destroy}; init/update/destroy = function. 9/9 OK.
+  (hero-story.js exports createHeroStory factory — shell story driver, NOT a fab module.)
+
+MUST HAVE [9/9]:
+  1. 9 high-fidelity modules w/ core interaction — all registered in router (lines 378-386), boot OK
+  2. 3-min non-repeating data — mulberry32 (prng.js:3, 0x6D2B79F5) + deriveTickSeed (prng.js:27)
+  3. 1.2s choreographed loop transition — tick-scheduler CHOREO_WINDOW_MS=1200, onChoreography(1200) (line 176)
+  4. Bilingual — i18n/en-US.json + zh-TW.json, 155 keys each, identical top-level keys
+  5. Theme toggle — shell/nav.js single writer of data-theme; runtime data-theme=dark confirmed
+  6. Every clickable wired — 43 addEventListener across modules/shell/components; Button onClick pattern
+  7. D3 v7 from esm.sh — d3-loader.js:44 ESM_URL=https://esm.sh/d3@7.8.5; runtime __SIM.d3 truthy
+  8/9. No banned API — 0 code occurrences (all hits are comments saying NOT used)
+  Runtime boot: window.__SIM 8-key contract present, scheduler tick advancing, spc module renders SVG.
+
+MUST NOT HAVE [12/12 clean]:
+  1. RAG/AI — 0 (state.js "rag" = false substring; only "manaGEMent")
+  2. real SECS/HSMS — 0 (no tcp/socket/hsms; "secs"/"gem" = manaGEMent substring)
+  3. multi-fab/tenant — 0
+  4. persistence — only d3-loader.js reads localStorage 'D3_FORCE_FALLBACK' (read-only QA test seam,
+     never setItem, persists NO app state) → RULED acceptable test hook, NOT a persistence violation.
+     0 sessionStorage, 0 IndexedDB.
+  5. realtime collab — 0 WebSocket/webrtc
+  6. PDF/print — 0 (reports.css = light-theme refinement, no @media print, no .print())
+  7. 3D/WebGL — 0 ("three uniforms" comment in apc.js = false positive)
+  8. audio — 0 (heroStory.play() = narrative beat playback, no Audio/AudioContext/<audio>)
+  9. single-level drill-down — yield/erp drill-downs open Dialog overlay, ONE level; router flat (one live module)
+  10. no bundler — package.json {name,private,type:module} only; no webpack/vite/rollup/tsconfig/node_modules; import map
+  11. no banned random/time — 0 code hits; performance.now() (permitted monotonic clock) only
+  12. no EventBus/BaseComponent — 0 inheritance (no 'extends'); Dispatcher is instance-scoped pub/sub
+      ("Not a global EventBus"); dispatcher on __SIM is documented QA contract, modules get it via ctx.
+
+DESIGN.md [delta 3]: exists at repo root; covers type scale (S3: 11/13/15/20/32),
+  spacing/component (S5: 36px rows, padding 8px 12px, radii), color (S4 dark+light palette). PASS.
+
+TASKS EVIDENCE [34/34]: every T0-T33 has >=1 evidence file (range 1-8). No task with zero.
+
+VERDICT: APPROVE

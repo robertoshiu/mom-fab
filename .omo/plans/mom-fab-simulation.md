@@ -76,14 +76,14 @@
 - `vendor/d3.v7.min.js` (備用 — 若 esm.sh 不可達)
 
 ### Definition of Done
-- [ ] Playwright 開啟 `index.html` 載入完成 < 2s
-- [ ] 點擊左側 9 個模組 nav 皆能切換主內容區
-- [ ] 頂部事件河每秒有新事件流入 (>0 events in 10s)
-- [ ] 180 tick 後 1.2s choreographed loop 回到 tick 0
-- [ ] i18n toggle 切換所有 `[data-i18n]` 元素
-- [ ] 主題切換改變 root class
-- [ ] 60s 連續運行 memory < 200MB
-- [ ] 無 `Math.random()` / `Date.now()` 出現於 src
+- [x] Playwright 開啟 `index.html` 載入完成 < 2s
+- [x] 點擊左側 9 個模組 nav 皆能切換主內容區
+- [x] 頂部事件河每秒有新事件流入 (>0 events in 10s)
+- [x] 180 tick 後 1.2s choreographed loop 回到 tick 0
+- [x] i18n toggle 切換所有 `[data-i18n]` 元素
+- [x] 主題切換改變 root class
+- [x] 60s 連續運行 memory < 200MB
+- [x] 無 `Math.random()` / `Date.now()` 出現於 src
 
 ### Must Have
 - 9 模組高仿真，每個有「核心互動元件」(per draft 列表)
@@ -286,7 +286,7 @@ F5 T31,F1,F2,F3,F4 - -
 > Format: bare numbers (`1.`, `2.`, ...) — NOT `T1.`, `Phase 1:`, `Task-1.`
 > Final Wave: `F1.`, `F2.`, ...
 
-- [ ] 0. Design tokens 系統 (styles/tokens.css)
+- [x] 0. Design tokens 系統 (styles/tokens.css)
 
   **What to do (M1 fix — 9 模組的視覺統一基石)**:
   - 定義 CSS custom properties in `styles/tokens.css`:
@@ -363,7 +363,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 32. Scenario Manifest 邊界 (scenarios/mom-fab.js)
+- [x] 32. Scenario Manifest 邊界 (scenarios/mom-fab.js)
 
   **What to do (引擎/內容分離邊界 — Approach C 核心)**:
   - 建立 `scenarios/mom-fab.js` — **純資料模組,零依賴** (不 import 任何引擎模組), 承載三類內容:
@@ -428,7 +428,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 1. PRNG + 雜湊引擎 (engine/prng.js)
+- [x] 1. PRNG + 雜湊引擎 (engine/prng.js)
 
   **What to do**:
   - 實作 `mulberry32(seed)` function: `function mulberry32(a) { return function() { a |= 0; a = a + 0x6D2B79F5 | 0; var t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } }`
@@ -500,7 +500,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 2. 物件工廠 (engine/factory.js)
+- [x] 2. 物件工廠 (engine/factory.js)
 
   **What to do**:
   - 匯出 `createProduct(id)`: 從 5 個產品 (LOGIC-A, LOGIC-B, MEM-DDR, MEM-NAND, RF-GaN) 隨機選一個起點；含 recipeCount, priority
@@ -551,7 +551,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 3. Lot lifecycle skeleton 生成 (engine/skeleton.js)
+- [x] 3. Lot lifecycle skeleton 生成 (engine/skeleton.js)
 
   **What to do**:
   - 匯出 `generateSkeleton(lots, equipment, recipes)`: 回傳 180-tick 陣列 `Array<{tick, events: Array<LotEvent>}>`
@@ -591,7 +591,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 4. Tick scheduler + wall clock 補點 + fade 轉場 (engine/tick-scheduler.js)
+- [x] 4. Tick scheduler + wall clock 補點 + fade 轉場 (engine/tick-scheduler.js)
 
   **What to do**:
   - 匯出 `class TickScheduler`:
@@ -682,7 +682,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 5. Dispatcher 事件發送器 (engine/dispatcher.js)
+- [x] 5. Dispatcher 事件發送器 (engine/dispatcher.js)
 
   **What to do**:
   - 匯出 `class Dispatcher`:
@@ -729,7 +729,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 6. SimulationState 中央 store (engine/state.js)
+- [x] 6. SimulationState 中央 store (engine/state.js)
 
   **What to do**:
   - 匯出 `class SimulationState`:
@@ -775,7 +775,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 7. i18n loader + 雙語字典 (i18n/zh-TW.json + i18n/en-US.json + i18n/index.js)
+- [x] 7. i18n loader + 雙語字典 (i18n/zh-TW.json + i18n/en-US.json + i18n/index.js)
 
   **What to do**:
   - 兩個 JSON 字典，含所有 UI 字串 key (例: `nav.mes`, `mes.lot_id`, `mes.lot_status`, `kpi.wip`, `event.lot.start`...)
@@ -834,7 +834,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 8. 主題 CSS 變數系統 (styles/theme.css)
+- [x] 8. 主題 CSS 變數系統 (styles/theme.css)
 
   **What to do**:
   - CSS custom properties on `:root` (深色) 與 `:root[data-theme="light"]` (淺色)
@@ -871,7 +871,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 9. Import map + index.html shell (index.html)
+- [x] 9. Import map + index.html shell (index.html)
 
   **What to do**:
   - 撰寫 `index.html`:
@@ -952,7 +952,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 10. 左側模組 nav (shell/nav.js)
+- [x] 10. 左側模組 nav (shell/nav.js)
 
   **What to do**:
   - 9 個按鈕: MES, APS, ERP, SPC, APC, WIP, SCM, Recipe, Yield
@@ -1000,7 +1000,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 11. 頂部 KPI 帶 (shell/kpi-strip.js)
+- [x] 11. 頂部 KPI 帶 (shell/kpi-strip.js)
 
   **What to do**:
   - 6 個 KPI card: WIP Count, Throughput (wafers/day), Yield %, MTBF (hr), OEE %, Alarm Active
@@ -1039,7 +1039,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 12. 頂部事件河 (shell/event-river.js)
+- [x] 12. 頂部事件河 (shell/event-river.js)
 
   **What to do**:
   - 從左到右滾動的「事件帶」，每個事件是彩色 chip (依事件類型: lot.start=blue, lot.complete=green, spc.violation=red, defect.detected=amber, alarm=red-pulse, apc.adjustment=cyan, recipe.changed=purple)
@@ -1089,7 +1089,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 13. 主內容區 SPA router (shell/router.js)
+- [x] 13. 主內容區 SPA router (shell/router.js)
 
   **What to do**:
   - `class Router`:
@@ -1157,7 +1157,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 14. 共用元件 (components/{button,card,dialog,toast,sparkline,table}.js)
+- [x] 14. 共用元件 (components/{button,card,dialog,toast,sparkline,table}.js)
 
   **What to do**:
   - 6 個純函式式元件, 接受 props 回傳 HTMLElement
@@ -1224,7 +1224,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 15. MES 模組 (modules/mes.js)
+- [x] 15. MES 模組 (modules/mes.js)
 
   **What to do**:
   - 主視圖:
@@ -1279,7 +1279,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 16. APS 模組 (modules/aps.js)
+- [x] 16. APS 模組 (modules/aps.js)
 
   **What to do**:
   - 主視圖:
@@ -1322,7 +1322,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 17. ERP 模組 (modules/erp.js)
+- [x] 17. ERP 模組 (modules/erp.js)
 
   **What to do**:
   - 主視圖:
@@ -1365,7 +1365,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 18. SPC 模組 (modules/spc.js)
+- [x] 18. SPC 模組 (modules/spc.js)
 
   **What to do**:
   - 主視圖:
@@ -1418,7 +1418,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 19. APC 模組 (modules/apc.js)
+- [x] 19. APC 模組 (modules/apc.js)
 
   **What to do**:
   - 主視圖:
@@ -1460,7 +1460,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 20. WIP 模組 (modules/wip.js)
+- [x] 20. WIP 模組 (modules/wip.js)
 
   **What to do**:
   - 主視圖:
@@ -1502,7 +1502,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 21. SCM 模組 (modules/scm.js)
+- [x] 21. SCM 模組 (modules/scm.js)
 
   **What to do**:
   - 主視圖:
@@ -1544,7 +1544,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 22. Recipe 模組 (modules/recipe.js)
+- [x] 22. Recipe 模組 (modules/recipe.js)
 
   **What to do**:
   - 主視圖:
@@ -1586,7 +1586,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 23. Yield/Defect 模組 (modules/yield.js)
+- [x] 23. Yield/Defect 模組 (modules/yield.js)
 
   **What to do**:
   - 主視圖:
@@ -1630,7 +1630,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 24. 模組間 cross-cutting 整合 (cross-cutting.js)
+- [x] 24. 模組間 cross-cutting 整合 (cross-cutting.js)
 
   **What to do**:
   - 確認 event-river 點擊正確切換到對應模組
@@ -1667,7 +1667,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 25. 報表頁淺色主題整合 (styles/reports.css + 模組淺色支援)
+- [x] 25. 報表頁淺色主題整合 (styles/reports.css + 模組淺色支援)
 
   **What to do (7A 修 — 重定義為「淺色主題品質規格」)**:
   - **主題唯一來源 = 使用者 toggle (T8 / T10)**;Router 無任何主題邏輯 (T13 cross-ref)。**刪除**原「SPA router 依模組類型自動套用淺色」與 `data-surface="light"` 自動機制
@@ -1704,7 +1704,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 26. 動畫 polish (animations.css + 模組 hover/focus)
+- [x] 26. 動畫 polish (animations.css + 模組 hover/focus)
 
   **What to do**:
   - 統一按鈕 hover 效果: 0.15s ease-out transform: translateY(-1px) + 陰影加深
@@ -1741,7 +1741,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 28. D3 vendor fallback + 動態 import 機制 (engine/d3-loader.js + vendor/d3.v7.min.js)
+- [x] 28. D3 vendor fallback + 動態 import 機制 (engine/d3-loader.js + vendor/d3.v7.min.js)
 
   **What to do (C1 + C3 fix — 防止 esm.sh 失敗導致 demo 全破)**:
   - 下載 `d3.v7.8.5` UMD minified bundle 至 `vendor/d3.v7.min.js` (~280KB)
@@ -1825,7 +1825,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 29. Skeleton-user conflict resolver (engine/event-gate.js)
+- [x] 29. Skeleton-user conflict resolver (engine/event-gate.js)
 
   **What to do (C2 fix — 讓使用者按鈕真的有意義)**:
   - 建立 `engine/event-gate.js` 匯出 `gateEvent(event, state)`:
@@ -1919,7 +1919,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 30. Hero scenario 編排 (modules/hero-story.js + topbar 整合)
+- [x] 30. Hero scenario 編排 (modules/hero-story.js + topbar 整合)
 
   **What to do (M2 fix — 給業務 demo 一個 30 tick 的「哇」時刻;tick-driven 版本)**:
   - 在 `topbar` 加一個 `▶ Play Demo Story` 按鈕 (在 i18n/theme toggle 旁)
@@ -2008,7 +2008,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 31. Deploy — git init + 靜態託管 + push 自動部署 (.github/workflows or Pages 設定)
+- [x] 31. Deploy — git init + 靜態託管 + push 自動部署 (.github/workflows or Pages 設定)
 
   **What to do (補 distribution — 計畫原缺 hosting/deploy task)**:
   - `git init` 於 repo root, 建立首次 commit (所有既有檔案), 建 GitHub remote
@@ -2058,7 +2058,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 33. 響應式版面 (monitoring-first) (styles/responsive.css + 模組斷點適配)
+- [x] 33. 響應式版面 (monitoring-first) (styles/responsive.css + 模組斷點適配)
 
   **What to do (5C/5C-A 修 — monitoring-first 三斷點響應式)**:
   - **三斷點**:
@@ -2115,7 +2115,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ---
 
-- [ ] 27. Performance pass (engine/perf.js + 各模組優化)
+- [x] 27. Performance pass (engine/perf.js + 各模組優化)
 
   **What to do**:
   - 為大表 (>50 列) 加入 virtual scroll
@@ -2164,7 +2164,7 @@ F5 T31,F1,F2,F3,F4 - -
 
 ## Final Verification Wave (MANDATORY)
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   讀 plan 全文, 驗證:
   - Must Have 9 項全部實作 (grep 對應檔案)
   - Must NOT Have 12 項全部未違反 (grep 禁用模式)
@@ -2174,7 +2174,7 @@ F5 T31,F1,F2,F3,F4 - -
 
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   - 跑 `ast_grep_search` 確認:
     - `Math.random` 在 src/ 為 0 hits
     - `Date.now` 在 src/ 為 0 hits (除了可能的 debug log)
@@ -2199,7 +2199,7 @@ F5 T31,F1,F2,F3,F4 - -
 
   Output: `Banned API [0 hits] | Destroy [N/N] | Memory [PASS/FAIL] | DOM [PASS/FAIL] | A11y [PASS/FAIL] | VERDICT`
 
-- [ ] F3. **Real Manual QA via Playwright** — `unspecified-high` + `playwright` skill
+- [x] F3. **Real Manual QA via Playwright** — `unspecified-high` + `playwright` skill
   啟動 `(cd repo && node tools/serve.mjs 8000 &)` 在 repo root (理由: Windows python http.server 對 ESM .js 回傳錯誤 MIME, 會破壞原生模組載入), 然後:
   - 載入 index.html, 截圖初始狀態
   - **【C3 修】** 設定 `page.context().setOffline(true)` 後重新載入, 確認仍能渲染 (vendor fallback)
@@ -2222,7 +2222,7 @@ F5 T31,F1,F2,F3,F4 - -
 
   Output: `Scenarios [N/N pass] | Loop [PASS/FAIL] | Determinism [PASS/FAIL] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   - 讀每個 task 的 "What to do" 與 "Must NOT do"
   - 讀對應實作檔案
   - 驗證 1:1: 該做的都做了, 不該做的都沒做
@@ -2234,7 +2234,7 @@ F5 T31,F1,F2,F3,F4 - -
 
   Output: `Tasks [N/N compliant] | Scope Locks [N/N clean] | Handlers [N/N bound] | Branding [0 hits] | VERDICT`
 
-- [ ] F5. **Post-deploy Smoke Test** — `unspecified-high` + `playwright` skill
+- [x] F5. **Post-deploy Smoke Test** — `unspecified-high` + `playwright` skill
   **(sequential-after — BlockedBy T31 + F1-F4;在部署上線且 F1-F4 通過後才跑)**
   範圍 = **公開 URL only** (warm cache, 不限速連線):
   - `page.goto(公開URL)` + `page.wait_for_load_state('networkidle')`, 量測載入 < 2s
@@ -2284,22 +2284,38 @@ ls .omo/evidence/ | wc -l
 ```
 
 ### Final Checklist
-- [ ] 9 模組全實作
-- [ ] 3 分鐘 loop 正常 + 1.2s choreographed 轉場 (M3)
-- [ ] i18n 切換正常
-- [ ] 主題切換正常
-- [ ] 0 banned API hits
-- [ ] Memory < 200MB (H3: dispatcher unsubscribe 強制)
-- [ ] DOM < 3000
-- [ ] 點擊所有 clickable 都有反應 (C2: Hold/Scrap 真的有效)
-- [ ] event-river 點擊可切模組 (M5: 15 chips + priority lane)
-- [ ] **【C3 修】** Offline 載入仍能渲染 (vendor fallback)
-- [ ] **【C1 修】** 0 d3 subpath imports
-- [ ] **【H1 修】** SPC 與 defect PRNG 序列獨立
-- [ ] **【H2 修】** epoch 邊界 SPC chart 不閃空
-- [ ] **【M1 修】** 0 raw font-size/padding in styles (全部走 tokens)
-- [ ] **【M2 修】** hero story 自動播放
-- [ ] **【H4 修】** module destroy() 強制 .interrupt() + unsubscribeAll()
+- [x] 9 模組全實作
+- [x] 3 分鐘 loop 正常 + 1.2s choreographed 轉場 (M3)
+- [x] i18n 切換正常
+- [x] 主題切換正常
+- [x] 0 banned API hits
+- [x] Memory < 200MB (H3: dispatcher unsubscribe 強制)
+- [x] DOM < 3000
+- [x] 點擊所有 clickable 都有反應 (C2: Hold/Scrap 真的有效)
+- [x] event-river 點擊可切模組 (M5: 15 chips + priority lane)
+- [x] **【C3 修】** Offline 載入仍能渲染 (vendor fallback)
+- [x] **【C1 修】** 0 d3 subpath imports
+- [x] **【H1 修】** SPC 與 defect PRNG 序列獨立
+- [x] **【H2 修】** epoch 邊界 SPC chart 不閃空
+- [x] **【M1 修】** 0 raw font-size/padding in styles (全部走 tokens)
+- [x] **【M2 修】** hero story 自動播放
+- [x] **【H4 修】** module destroy() 強制 .interrupt() + unsubscribeAll()
+
+### Completion Note (2026-06-11)
+
+**BUILD COMPLETE.** All 34 tasks (0-33) delivered via 5 ultracode waves + a final independent review wave (F1-F5). Every Definition-of-Done and Final-Checklist item above is ticked against verified F-wave evidence.
+
+- **Deploy URL (live, HTTP 200)**: <https://robertoshiu.github.io/mom-fab/> (repo: <https://github.com/robertoshiu/mom-fab>)
+- **Evidence**: 148 artifacts under `.omo/evidence/` (every task T0-T33 has ≥1 `task-N-*` file; F1-F5 reviewers wrote their own `f1-*`..`f5-*` artifacts re-derived independently, never trusting prior evidence)
+
+**F-wave verdicts (all APPROVE):**
+- **F1 Plan Compliance Audit** — APPROVE. Must Have [9/9] | Must NOT Have [12/12] | Tasks evidence [34/34] | Module contract [9/9]. localStorage ruled an acceptable read-only QA seam (D3_FORCE_FALLBACK getItem only, persists no domain state).
+- **F2 Code Quality Review** — APPROVE. Banned API [0 code hits] | console.log [0] | Destroy [9/9] | Memory [PASS — 9.54MB→9.54MB over 20 switches] | DOM [PASS — all modules <3000] | Contrast [PASS — both themes ≥4.5:1]. Divergences (hero-story caption-fade setTimeout; PRNG n=100 single-draw noise) documented and defensible.
+- **F3 Real Browser QA** — APPROVE. Scenarios [12/12 pass] | 3-min loop + 1.2s choreo (M3) + H2 continuity [PASS] | Determinism [cross-reload bit-identical + per-tick unique, PASS] | Hero autoplay [PASS]. One P2 nav-rail-highlight desync on river-chip nav noted (recoverable, does not fail the plan assertion).
+- **F4 Scope Fidelity Check** — APPROVE. Tasks [34/34 compliant] | Scope locks [9/9 clean] | Handlers [9/9 bound] | Branding [0 hits — no Applied Materials / SmartFactory / Critical Manufacturing in shipped surfaces].
+- **F5 Post-deploy Smoke Test** — APPROVE. Public URL [200] | Load <2s [PASS — 299ms warm app-ready] | 9 Modules [9/9] | Hero autoplay [PASS — MES→SPC→APC→Yield self-fired].
+
+**VERDICT: SHIP — 5/5 final reviews APPROVE.**
 
 ## GSTACK REVIEW REPORT
 
