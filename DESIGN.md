@@ -50,6 +50,17 @@
 | 768–1365 | 單欄化,互動保留 |
 | <768 | 監看儀:KPI 2×3、河直列、每模組一張代表圖全寬、甘特→清單、操作功能顯示「桌面版功能」notice;touch target ≥44px |
 
-## 7. 互動狀態
+## 7. 導覽系統 (Guided Tours)
+
+規格正典在 `.omo/plans/guided-tour.md` 的 DESIGN SPEC(DS-1〜DS-13);此處只記不變式:
+
+- **層級**:spotlight 挖洞+1px 呼吸 hairline(對齊 `--tick`)是唯一主角;callout 標題用 engraved label;footer 控制列退為 `--text-secondary`;auto 倒數環 2px/`--accent`@.35/7s=7 ticks,永不搶 target。
+- **z 階梯**:`--z-tour-overlay: 9000` < `--z-tour-callout: 9010` < `--z-dialog: 9500`(Guide Hub 開在 tour 之上)< vignette 9999 < toast 10000(**toast 有意穿透 tour** — 警報必須浮出)。
+- **scrim**:`--tour-scrim` 隨 data-theme 切換;callout 文字永遠坐在實心 `--bg-elevated` 上。
+- **首訪編排**:hero story 維持 tick-3 autoplay 優先;邀請卡等 hero onFinish 才現身,非阻斷、無 scrim、承諾時間預算(30 秒)。第一個 ask 永遠是 onboarding,grand tour 走完結卡轉化。
+- **降級語彙**:anchor 缺失 → 同 chrome 置中卡(無道歉文案);desktopOnly 行動端 → 桌面 glyph + `states` notice 語彙,兩者不可混淆。
+- callout `max-width` 520px(對齊 hero caption);`<768` 一律 bottom-sheet(`max-height: min(45vh, content)`,挖洞目標保持在 sheet 上方)。
+
+## 8. 互動狀態
 
 每個模組五態 (loading/empty/error/success/partial) 規格見計畫「互動狀態規格」矩陣。原則:loading = skeleton shimmer (非 spinner);empty = 溫度文案 + 確定性 tick 預告;error = boot 橫幅語彙的 inline 版;partial = 靠左繪製 + 右側淡格線。狀態文案全部走 i18n `states.*`。
