@@ -71,6 +71,7 @@ function renderLabels() {
   const themeBtn = nav.querySelector('#nav-theme-toggle');
   const localeBtn = nav.querySelector('#nav-locale-toggle');
   const demoBtn = nav.querySelector('#nav-demo');
+  const helpBtn = nav.querySelector('#nav-help');
   if (themeBtn) {
     const label = t('theme.toggle');
     themeBtn.setAttribute('aria-label', label);
@@ -90,6 +91,12 @@ function renderLabels() {
     demoBtn.setAttribute('aria-label', label);
     demoBtn.querySelector('.tip').textContent = label;
   }
+  if (helpBtn) {
+    // M3: the ? button opens the Guide Hub (aria-label + tooltip from guide.title).
+    const label = t('guide.title');
+    helpBtn.setAttribute('aria-label', label);
+    helpBtn.querySelector('.tip').textContent = label;
+  }
 }
 
 // idempotent DOM patch: move the .active class + aria-current to the active id.
@@ -104,12 +111,21 @@ function paintActive() {
 
 // Public: set the active module (state-first → patch → dispatch). Called by the
 // click handler and the keyboard shortcuts; the T13 router also listens to the
-// dispatched event. Idempotent: re-selecting the active module is a no-op event.
-function setActive(id) {
+// dispatched event. Idempotent: re-selecting the active module is a no-op for the
+// router (no module:change), but a USER-INITIATED selection ALWAYS announces nav
+// intent so an active guided tour can interrupt even when the click re-selects the
+// module the tour started on (B4: the rail can still read the pre-tour module
+// while the tour's own router.set transition is in flight, so a user click on the
+// visibly-active button would otherwise emit nothing and never reach the engine).
+function setActive(id, { userInitiated = false } = {}) {
   if (!buttonsById.has(id)) return;
   const changed = id !== activeId;
   activeId = id;            // state first
   paintActive();            // then the idempotent DOM patch
+  if (userInitiated) {
+    // genuine user nav intent — the tour engine listens to interrupt (B4).
+    window.dispatchEvent(new CustomEvent('nav:user-intent', { detail: { id } }));
+  }
   if (changed) {
     window.dispatchEvent(new CustomEvent('module:change', { detail: { id } }));
   }
@@ -149,7 +165,7 @@ function buildModuleButton(mod, index) {
 
   btn.appendChild(makeTip());
 
-  btn.addEventListener('click', () => setActive(mod.id));
+  btn.addEventListener('click', () => setActive(mod.id, { userInitiated: true }));
   return btn;
 }
 
@@ -192,7 +208,7 @@ function onKeydown(e) {
   const n = Number(e.key);
   if (Number.isInteger(n) && n >= 1 && n <= MODULES.length) {
     e.preventDefault();
-    setActive(MODULES[n - 1].id);
+    setActive(MODULES[n - 1].id, { userInitiated: true });
   }
 }
 
@@ -201,6 +217,9 @@ export function initNav(options = {}) {
   if (!nav) return null;
 
   ensureStylesheet();
+
+  // Guided-tour anchor: the whole module rail (M2).
+  nav.setAttribute('data-tour', 'shell.nav');
 
   // Build the 9 module buttons after the brand-mark slot.
   const frag = document.createDocumentFragment();
@@ -220,12 +239,14 @@ export function initNav(options = {}) {
   });
   themeBtn.style.setProperty('--nav-d', `${40 + MODULES.length * 40}ms`);
   themeBtn.addEventListener('click', toggleTheme);
+  themeBtn.setAttribute('data-tour', 'shell.theme'); // guided-tour anchor (M2)
 
   const localeBtn = buildRailButton({
     id: 'nav-locale-toggle', text: 'EN',
   });
   localeBtn.style.setProperty('--nav-d', `${80 + MODULES.length * 40}ms`);
   localeBtn.addEventListener('click', toggleLocale);
+  localeBtn.setAttribute('data-tour', 'shell.locale'); // guided-tour anchor (M2)
 
   // ▶ demo button — T30: manual replay trigger for the tick-driven hero story.
   // Enabled (no disabled state); clicking calls window.__SIM.playHeroStory(),
@@ -234,12 +255,25 @@ export function initNav(options = {}) {
     id: 'nav-demo', klass: 'rail-btn-demo', iconSymbol: 'i-play',
   });
   demoBtn.style.setProperty('--nav-d', `${120 + MODULES.length * 40}ms`);
+  demoBtn.setAttribute('data-tour', 'shell.demo'); // guided-tour anchor (M2)
   demoBtn.addEventListener('click', () => {
     const sim = typeof window !== 'undefined' ? window.__SIM : null;
     if (sim && typeof sim.playHeroStory === 'function') sim.playHeroStory();
   });
 
-  frag.append(themeBtn, localeBtn, demoBtn);
+  // ? help button — M3: opens the Guide Hub (list of tours + how-it-works).
+  // Clicking dispatches the document-level guide:open CustomEvent that
+  // shell/guide-hub.js listens for; keyboard-accessible like every rail button.
+  const helpBtn = buildRailButton({
+    id: 'nav-help', klass: 'rail-btn-help', text: '?',
+  });
+  helpBtn.style.setProperty('--nav-d', `${160 + MODULES.length * 40}ms`);
+  helpBtn.setAttribute('data-tour', 'shell.help'); // guided-tour anchor (M3)
+  helpBtn.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('guide:open'));
+  });
+
+  frag.append(themeBtn, localeBtn, demoBtn, helpBtn);
   nav.appendChild(frag);
 
   // first paint of labels/tooltips (reads t()).
