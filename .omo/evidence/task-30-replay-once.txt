@@ -11,3 +11,47 @@ port 8530, 2026-06-10T23:44:22Z
    before: {"t":20,"playing":false}
    after : {"t":22,"playing":true,"a":"mes","indLabel":"▶播放示範劇本中… / Playing demo story…"}
    => indicator returns, story refires on demand.
+
+-------------------------------------------------------------------------------
+REAUDIT P1 — hero chips ride the priority lane + flag-driven hero tagging
+port 8550, 2026-06-11 (fresh load, real scheduler)
+
+Design: hero-story emits every story chip (incl. closing beat-5 lot.complete)
+with payload.hero === true. event-river._ordered() ranks hero chips WITH the
+priority group, FIRST within it; _buildChip() applies .hero-chip from the flag
+(ev.hero), with data-hero="true". The chips[0] guesswork in _tagLatestChip was
+removed entirely. Flag ages out naturally with the chip — no permanent pinning.
+
+A. AUTOPLAY RUN (gate tick 3; closing beat lands at absolute tick 33).
+   Per-frame capture (120ms) of #event-river DOM, keyed by scheduler tick:
+     tick 3  : heroChips=1 dim=true   (beat-1 MES chip pinned bright)
+     tick 13 : heroChips=2 dim=true   (beat-2 SPC)
+     tick 21 : heroChips=3 dim=true   (beat-3 APC)
+     tick 28 : heroChips=3 dim=true   (beat-4 Yield)
+     tick 33 : closingPresent=true  closingIsHeroChip=true  dim=false
+     tick 34 : closingPresent=true  closingIsHeroChip=true
+     tick 35 : closingPresent=true  closingIsHeroChip=true
+     tick 36 : closingPresent=true  closingIsHeroChip=true
+     tick 37 : closingPresent=true  closingIsHeroChip=true
+   tick-33 head chips (asserted by data attrs + text, NOT position):
+     [0] lot.complete  heroChip=true pri=true  "L-042 Lot 完工 / Lot Complete · L-042 marked Recovered"
+     [1] defect.detected heroChip=true pri=true
+     [2] apc.adjustment  heroChip=true pri=true
+   => closing 'L-042 marked Recovered' chip VISIBLE at ticks 33-37 with
+      .hero-chip on THAT chip; beats 1-4 chips also visible during their beats.
+   Past finale (tick 125): heroChips=0, dim=false, river back to NORMAL ordering
+      (no permanent pinning — hero flag aged out of the 60-event store).
+   console --errors: (no console errors).
+
+B. REPLAY via window.__SIM.playHeroStory() — same finale.
+   maxRecovered capture: { tick: 112, closingPresent: true,
+     closingIsHeroChip: true,
+     closingText: "L-042 Lot 完工 / Lot Complete · L-042 marked Recovered" }
+   L-042 status === 'recovered' across ticks 105-112 (window.__SIM.state.lots
+   is a Map; lots.get('L-042').status === 'recovered'); closing hero chip
+   present + .hero-chip on it throughout. Zero console errors.
+
+C. task-30-finale.png — clipped #event-river band during a replay finale:
+   leftmost (priority-lane head) chip is the bright hero chip
+   "L-042 Lot 完工 / Lot Complete · L-042 marked Recovered", visually distinct
+   from the dimmer organic defect chips beside it.

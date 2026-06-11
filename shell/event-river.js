@@ -282,11 +282,18 @@ export class EventRiver {
 
   // --- state-first: mutate the store, then patch the DOM (2B) ---------------
   _ingest(type, payload) {
+    const p = payload || {};
+    // hero-story chips (T30) ride the priority lane for the story's duration: the
+    // producer stamps payload.hero = true. They sort WITH the priority group (and
+    // ahead of organic priority events within it) and render with the bright
+    // .hero-chip tag — a flag-driven tag, never a position guess.
+    const hero = p.hero === true;
     const ev = {
       seq: this._seq++,
       type,
-      payload: payload || {},
-      priority: PRIORITY_TYPES.has(type),
+      payload: p,
+      priority: PRIORITY_TYPES.has(type) || hero,
+      hero,
       module: eventRouting[type] || null,
     };
     this._events.push(ev);
@@ -317,15 +324,24 @@ export class EventRiver {
   // ordering: priority chips pinned leftmost (newest priority first), then the
   // most-recent normal chips. The visible slice is the first `capacity` of that
   // ordered list; everything beyond becomes the "+N" overflow count.
+  //
+  // T30 hero lane: hero-flagged chips share the priority group but rank FIRST
+  // within it (ahead of organic spc.violation / equipment.alarm / defect.detected),
+  // so the story's chips — including the closing 'L-042 marked Recovered' beat —
+  // stay pinned at the head while the narrative plays. The flag ages out with the
+  // chip (no permanent pinning) once the story-emitted events scroll off.
   _ordered() {
+    const hero = [];
     const pri = [];
     const normal = [];
     // iterate newest → oldest so the freshest events are nearest the head.
     for (let i = this._events.length - 1; i >= 0; i--) {
       const ev = this._events[i];
-      (ev.priority ? pri : normal).push(ev);
+      if (ev.hero) hero.push(ev);
+      else if (ev.priority) pri.push(ev);
+      else normal.push(ev);
     }
-    return pri.concat(normal);
+    return hero.concat(pri, normal);
   }
 
   _render() {
@@ -369,6 +385,11 @@ export class EventRiver {
     chip.type = 'button';
     chip.className = 'chip ' + (CHIP_TONE[ev.type] || 'tone-muted');
     if (ev.priority) chip.classList.add('pri');
+    // T30: flag-driven hero tag (never chips[0] guesswork) — bright under hero-dim.
+    if (ev.hero) {
+      chip.classList.add('hero-chip');
+      chip.dataset.hero = 'true';
+    }
     chip.dataset.eventType = ev.type;
     chip.dataset.module = ev.module || '';
     chip.dataset.seq = String(ev.seq);

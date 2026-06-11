@@ -370,12 +370,15 @@ export class HeroStory {
     switch (step.module) {
       case 'spc':
         // out-of-control point — SPC subscribes 'spc.violation' → log + red mark.
+        // hero:true rides the river's priority lane + earns the bright .hero-chip
+        // tag (flag-driven; the river no longer guesses chips[0]).
         this.dispatcher.emit('spc.violation', {
           tick,
           rule: 1,
           parameter: 'Chamber pressure',
           value: 4.92,           // fixed excursion value (deterministic)
           lotId: this._lotId,
+          hero: true,
         });
         break;
       case 'apc':
@@ -384,6 +387,7 @@ export class HeroStory {
           tick,
           lotId: this._lotId,
           delta: -2.3,           // pressure -2.3% (matches the manifest note)
+          hero: true,
         });
         break;
       case 'yield': {
@@ -396,6 +400,7 @@ export class HeroStory {
           x: 0.18,
           y: -0.22,
           type: dt ? dt.id : this._defectType,
+          hero: true,
         });
         break;
       }
@@ -413,24 +418,18 @@ export class HeroStory {
     // yield; for mes/overview emit a lot.start/lot.complete style marker so the
     // river shows the narrative without inventing a new event type.
     if (!this.dispatcher || typeof this.dispatcher.emit !== 'function') return;
+    // hero:true marks the chip so the river ranks it in the priority lane and tags
+    // it .hero-chip at render time — flag-driven, NOT a chips[0] position guess.
+    // The closing beat-5 'L-042 marked Recovered' lot.complete carries it too.
     if (step.module === 'mes') {
       this.dispatcher.emit('lot.start', {
-        lotId: this._lotId, step: 'PHOTO', note: step.note, tick,
+        lotId: this._lotId, step: 'PHOTO', note: step.note, tick, hero: true,
       });
     } else if (step.module === 'overview') {
       this.dispatcher.emit('lot.complete', {
-        lotId: this._lotId, note: step.note, tick,
+        lotId: this._lotId, note: step.note, tick, hero: true,
       });
     }
-    // tag the freshest river chip(s) as hero-chip so they stay bright under dim.
-    this._tagLatestChip();
-  }
-
-  _tagLatestChip() {
-    const river = document.getElementById('event-river');
-    if (!river) return;
-    const chips = river.querySelectorAll('.river-track .chip');
-    if (chips.length) chips[0].classList.add('hero-chip');
   }
 
   // -- topbar indicator ------------------------------------------------------
@@ -525,10 +524,10 @@ export class HeroStory {
     if (!river) return;
     ensureStyles(river.ownerDocument || document);
     river.classList.toggle('hero-dim', !!on);
-    if (!on) {
-      // restore: drop the hero-chip tag so future epochs render normally.
-      river.querySelectorAll('.chip.hero-chip').forEach((c) => c.classList.remove('hero-chip'));
-    }
+    // NOTE: the .hero-chip tag is flag-driven (ev.hero, set at river render time),
+    // so we do NOT strip it here — removing the dim envelope is enough. The hero
+    // chips age out of the river on their own as new events arrive; manually
+    // stripping the class would only flicker against the next _render() re-tag.
   }
 }
 
