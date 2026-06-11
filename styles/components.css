@@ -7,6 +7,20 @@
    Canonical design system: /DESIGN.md
    ============================================================ */
 
+/* ---- rail stacking context ----
+   The rail's bilingual tooltips (.tip) overflow the 72px rail rightward into
+   the content plane. #nav-left and #main are static sibling grid items in #app,
+   so by default they tie on stacking level and paint in DOM order — #main last,
+   meaning its positioned content panels paint OVER the rail's overflowing tip
+   (the tip's own z-index:10 is trapped inside the .mod stacking context the
+   hover-transform creates, so it can't out-rank a later sibling subtree).
+   Giving the rail its own positioned stacking context at --z-rail lifts the
+   whole rail — tooltips included — above main content across all breakpoints. */
+#nav-left {
+  position: relative;
+  z-index: var(--z-rail);
+}
+
 /* ---- nav rail buttons (the 72px instrument rail) ---- */
 .mod {
   position: relative;
@@ -55,7 +69,7 @@
   color: var(--text-primary);
   opacity: 0;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-tooltip);
   transition: opacity var(--transition), transform var(--transition);
 }
 .mod:hover .tip,
@@ -106,7 +120,7 @@
   color: var(--text-primary);
   opacity: 0;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-tooltip);
   transition: opacity var(--transition), transform var(--transition);
 }
 .rail-btn:hover .tip,

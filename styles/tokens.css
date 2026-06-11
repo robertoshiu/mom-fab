@@ -78,6 +78,18 @@
   --sh-md: 0 4px 12px rgba(0, 0, 0, 0.3);
   --sh-lg: 0 12px 32px rgba(0, 0, 0, 0.4);
 
+  /* -- Z-index scale ----------------------------------------------------
+     One ordered ladder so stacking is a deliberate token choice, not an
+     arbitrary integer race. The nav rail must paint ABOVE main content so
+     its bilingual tooltips (which overflow the 72px rail rightward into the
+     content plane) are never occluded by positioned content panels — those
+     panels live in #main, a later DOM sibling, so without this the rail
+     loses the paint-order tie. --z-tooltip rides one step above the rail
+     surface so a tip clears its own rail chrome. Kept below the dark-theme
+     atmosphere vignette (9999, pointer-events:none) and boot overlays (10000+). */
+  --z-rail: 100;       /* the instrument nav rail container                  */
+  --z-tooltip: 110;    /* rail tooltips, above the rail surface              */
+
   /* -- Motion ------------------------------------------------------ */
   --transition: 200ms ease;
   --tick: 1000ms;            /* the simulation heartbeat              */
